@@ -1,0 +1,86 @@
+ 
+            
+            
+           GET http://localhost:3001/bible 500 (Internal Server Error)
+processMessage @ webpack-internal:///…oader-client.js:246
+eval @ webpack-internal:///…loader-client.js:71
+handleMessage @ webpack-internal:///…ges/websocket.js:65
+index.js:644 Uncaught ModuleBuildError: Module build failed (from ./node_modules/next/dist/build/webpack/loaders/next-swc-loader.js):
+Error:   × You're importing a component that needs `useState`. This React hook only works in a client component. To fix, mark the file (or its parent) with the `"use client"` directive.
+  │
+  │  Learn more: https://nextjs.org/docs/app/api-reference/directives/use-client
+  │
+
+   ╭─[/Users/jongchoonna/Documents/cursor/bible/bibledoc/src/app/bible/page.tsx:1:1]
+ 1 │ import React, { useState, useRef, useCallback } from 'react';
+   ·                 ────────
+ 2 │ import { Upload, FileText, Download, Eye, ChevronRight, Book, CheckCircle, XCircle, Clock, Folder } from 'lucide-react';
+ 3 │ 
+ 4 │ // 타입 정의
+   ╰────
+  × You're importing a component that needs `useRef`. This React hook only works in a client component. To fix, mark the file (or its parent) with the `"use client"` directive.
+  │
+  │  Learn more: https://nextjs.org/docs/app/api-reference/directives/use-client
+  │
+
+   ╭─[/Users/jongchoonna/Documents/cursor/bible/bibledoc/src/app/bible/page.tsx:1:1]
+ 1 │ import React, { useState, useRef, useCallback } from 'react';
+   ·                           ──────
+ 2 │ import { Upload, FileText, Download, Eye, ChevronRight, Book, CheckCircle, XCircle, Clock, Folder } from 'lucide-react';
+ 3 │ 
+ 4 │ // 타입 정의
+   ╰────
+
+    at processResult (/Users/jongchoonna/Documents/cursor/bible/bibledoc/node_modules/next/dist/compiled/webpack/bundle5.js:29:407111)
+    at <unknown> (/Users/jongchoonna/Documents/cursor/bible/bibledoc/node_modules/next/dist/compiled/webpack/bundle5.js:29:408906)
+    at <unknown> (/Users/jongchoonna/Documents/cursor/bible/bibledoc/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js:1:8645)
+    at <unknown> (/Users/jongchoonna/Documents/cursor/bible/bibledoc/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js:1:5019)
+    at r.callback (/Users/jongchoonna/Documents/cursor/bible/bibledoc/node_modules/next/dist/compiled/loader-runner/LoaderRunner.js:1:4039)
+getServerError @ node-stack-frames.js:49
+eval @ index.js:644
+setTimeout
+hydrate @ index.js:622
+await in hydrate
+pageBootstrap @ page-bootstrap.js:29
+eval @ next-dev.js:24
+Promise.then
+eval @ next-dev.js:22
+(pages-dir-browser)/./node_modules/next/dist/client/next-dev.js @ main.js:1502
+options.factory @ webpack.js:675
+__webpack_require__ @ webpack.js:37
+__webpack_exec__ @ main.js:2658
+(익명) @ main.js:2659
+webpackJsonpCallback @ webpack.js:1351
+(익명) @ main.js:9
+websocket.js:42 [HMR] connected
+hook.js:608 ./src/app/bible/page.tsx
+Error:   × You're importing a component that needs `useState`. This React hook only works in a client component. To fix, mark the file (or its parent) with the `"use client"` directive.
+  │
+  │  Learn more: https://nextjs.org/docs/app/api-reference/directives/use-client
+  │
+
+   ╭─[/Users/jongchoonna/Documents/cursor/bible/bibledoc/src/app/bible/page.tsx:1:1]
+ 1 │ import React, { useState, useRef, useCallback } from 'react';
+   ·                 ────────
+ 2 │ import { Upload, FileText, Download, Eye, ChevronRight, Book, CheckCircle, XCircle, Clock, Folder } from 'lucide-react';
+ 3 │ 
+ 4 │ // 타입 정의
+   ╰────
+  × You're importing a component that needs `useRef`. This React hook only works in a client component. To fix, mark the file (or its parent) with the `"use client"` directive.
+  │
+  │  Learn more: https://nextjs.org/docs/app/api-reference/directives/use-client
+  │
+
+   ╭─[/Users/jongchoonna/Documents/cursor/bible/bibledoc/src/app/bible/page.tsx:1:1]
+ 1 │ import React, { useState, useRef, useCallback } from 'react';
+   ·                           ──────
+ 2 │ import { Upload, FileText, Download, Eye, ChevronRight, Book, CheckCircle, XCircle, Clock, Folder } from 'lucide-react';
+ 3 │ 
+ 4 │ // 타입 정의
+   ╰────
+overrideMethod @ hook.js:608
+nextJsHandleConsoleError @ client.js:82
+handleErrors @ hot-reloader-client.js:163
+processMessage @ hot-reloader-client.js:224
+eval @ hot-reloader-client.js:71
+handleMessage @ websocket.js:65

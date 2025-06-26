@@ -1,0 +1,13 @@
+
+// Embed code in the <head> of your html //
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Gowun+Batang&display=swap');
+</style>
+
+
+// Gowun Batang: CSS class //
+.gowun-batang-regular {
+  font-family: "Gowun Batang", serif;
+  font-weight: 300;
+  font-style: normal;
+}
