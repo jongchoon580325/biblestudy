@@ -2,34 +2,34 @@
 
 export default function ServiceCards() {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 w-full max-w-5xl">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 w-[70%] max-w-3xl mx-auto min-h-[60vh] place-items-center">
       {/* 성경 자료 열람 */}
-      <div className="group bg-gray-900/80 rounded-2xl p-8 flex flex-col items-center shadow-xl border border-gray-800 hover:border-blue-500 transition-all duration-300 hover:scale-105 hover:shadow-blue-500/30">
-        <span className="text-4xl mb-4 drop-shadow-[0_0_12px_rgba(59,130,246,0.7)]">📖</span>
-        <h3 className="text-xl font-bold text-white mb-2">성경 자료 열람</h3>
-        <p className="text-gray-400 text-center text-sm">다양한 성경 자료와 해설, 주석을 탐색하고 열람하세요.</p>
+      <div className="group bg-gray-900/80 rounded-2xl p-4 flex flex-col items-center shadow-xl border border-gray-800 hover:border-blue-500 transition-all duration-300 hover:scale-105 hover:shadow-blue-500/30 w-[90%] h-[180px] min-w-[120px] min-h-[120px]">
+        <span className="text-2xl mb-2 drop-shadow-[0_0_8px_rgba(59,130,246,0.7)]">📖</span>
+        <h3 className="text-base font-bold text-white mb-1">성경 자료 열람</h3>
+        <p className="text-gray-400 text-center text-xs">다양한 성경 자료와 해설, 주석을 탐색하고 열람하세요.</p>
       </div>
       {/* 자료 업로드 */}
-      <div className="group bg-gray-900/80 rounded-2xl p-8 flex flex-col items-center shadow-xl border border-gray-800 hover:border-green-500 transition-all duration-300 hover:scale-105 hover:shadow-green-500/30">
-        <span className="text-4xl mb-4 drop-shadow-[0_0_12px_rgba(34,197,94,0.7)]">⬆️</span>
-        <h3 className="text-xl font-bold text-white mb-2">자료 업로드</h3>
-        <p className="text-gray-400 text-center text-sm">성경 연구에 도움이 되는 자료를 직접 업로드하고 공유하세요.</p>
+      <div className="group bg-gray-900/80 rounded-2xl p-4 flex flex-col items-center shadow-xl border border-gray-800 hover:border-green-500 transition-all duration-300 hover:scale-105 hover:shadow-green-500/30 w-[90%] h-[180px] min-w-[120px] min-h-[120px]">
+        <span className="text-2xl mb-2 drop-shadow-[0_0_8px_rgba(34,197,94,0.7)]">⬆️</span>
+        <h3 className="text-base font-bold text-white mb-1">자료 업로드</h3>
+        <p className="text-gray-400 text-center text-xs">성경 연구에 도움이 되는 자료를 직접 업로드하고 공유하세요.</p>
       </div>
       {/* 카테고리별 탐색 */}
-      <div className="group bg-gray-900/80 rounded-2xl p-8 flex flex-col items-center shadow-xl border border-gray-800 hover:border-purple-500 transition-all duration-300 hover:scale-105 hover:shadow-purple-500/30">
-        <span className="text-4xl mb-4 drop-shadow-[0_0_12px_rgba(168,85,247,0.7)]">🗂️</span>
-        <h3 className="text-xl font-bold text-white mb-2">카테고리별 탐색</h3>
-        <p className="text-gray-400 text-center text-sm">주제별, 분류별로 자료를 쉽게 찾고 정리할 수 있습니다.</p>
+      <div className="group bg-gray-900/80 rounded-2xl p-4 flex flex-col items-center shadow-xl border border-gray-800 hover:border-purple-500 transition-all duration-300 hover:scale-105 hover:shadow-purple-500/30 w-[90%] h-[180px] min-w-[120px] min-h-[120px]">
+        <span className="text-2xl mb-2 drop-shadow-[0_0_8px_rgba(168,85,247,0.7)]">🗂️</span>
+        <h3 className="text-base font-bold text-white mb-1">카테고리별 탐색</h3>
+        <p className="text-gray-400 text-center text-xs">주제별, 분류별로 자료를 쉽게 찾고 정리할 수 있습니다.</p>
       </div>
       {/* 커뮤니티/나눔 */}
-      <div className="group bg-gray-900/80 rounded-2xl p-8 flex flex-col items-center shadow-xl border border-gray-800 hover:border-pink-500 transition-all duration-300 hover:scale-105 hover:shadow-pink-500/30">
-        <span className="text-4xl mb-4 drop-shadow-[0_0_12px_rgba(236,72,153,0.7)]">💬</span>
-        <h3 className="text-xl font-bold text-white mb-2">커뮤니티/나눔</h3>
-        <p className="text-gray-400 text-center text-sm">자료에 대한 의견을 나누고, 신앙의 지식을 함께 성장시키세요.</p>
+      <div className="group bg-gray-900/80 rounded-2xl p-4 flex flex-col items-center shadow-xl border border-gray-800 hover:border-pink-500 transition-all duration-300 hover:scale-105 hover:shadow-pink-500/30 w-[90%] h-[180px] min-w-[120px] min-h-[120px]">
+        <span className="text-2xl mb-2 drop-shadow-[0_0_8px_rgba(236,72,153,0.7)]">💬</span>
+        <h3 className="text-base font-bold text-white mb-1">커뮤니티/나눔</h3>
+        <p className="text-gray-400 text-center text-xs">자료에 대한 의견을 나누고, 신앙의 지식을 함께 성장시키세요.</p>
       </div>
       <style jsx>{`
         .group:hover span {
-          filter: brightness(1.2) drop-shadow(0 0 16px #60a5fa);
+          filter: brightness(1.2) drop-shadow(0 0 12px #60a5fa);
         }
       `}</style>
     </div>

@@ -1,2 +1,4 @@
  {/* 구분선 */}
         <div className="h-px bg-gradient-to-r from-transparent via-blue-400 to-transparent mb-8" />
+
+        <div className="h-px bg-gradient-to-r from-transparent via-blue-400 to-transparent mb-8" />
