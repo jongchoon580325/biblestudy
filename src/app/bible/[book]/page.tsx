@@ -30,6 +30,7 @@ export default function Page({ params }: any) {
     fileType: string;
     book: string;
     file: File;
+    sync_status?: string;
   }
   const [materials, setMaterials] = useState<Material[]>([]);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -46,16 +47,6 @@ export default function Page({ params }: any) {
   // BOOK_NAMES에 없는 경우 notFound 렌더링
   if (!BOOK_NAMES.includes(bookName)) return notFound();
 
-  // 폼 입력 핸들러
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-  };
-  // 파일 선택 핸들러
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    setForm((prev) => ({ ...prev, file }));
-  };
   // 폼 제출 핸들러
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,6 +64,7 @@ export default function Page({ params }: any) {
         fileType: file.type,
         book: bookName,
         file,
+        sync_status: 'synced',
       },
     ]);
     setForm({ title: "", description: "", tags: "", file: null });
@@ -158,7 +150,8 @@ export default function Page({ params }: any) {
   return (
     <section className="flex flex-col gap-4 w-full max-w-[1024px] mx-auto py-8 min-h-[70vh]">
       {/* 상단: 목록으로 가기 버튼 */}
-      <div className="mb-2 flex justify-end">
+      <div className="flex flex-row items-center justify-between mb-2">
+        <h2 className="text-xl font-bold text-white mb-1">성경자료실</h2>
         <button
           onClick={() => router.push("/bible")}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-400 to-emerald-400 text-white font-semibold shadow hover:from-indigo-500 hover:to-emerald-500 transition-all"
@@ -167,161 +160,214 @@ export default function Page({ params }: any) {
           목록으로 가기
         </button>
       </div>
-      <div className="flex flex-row gap-8">
-        {/* 좌측: 자료등록 (3) */}
-        <div className="w-1/3 min-w-[280px] max-w-[340px] bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6 flex flex-col shadow-md">
+      <div className="flex flex-row gap-8 mb-8">
+        {/* 좌: 자료등록 (60%) */}
+        <div className="w-[60%] bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6 flex flex-col shadow-md">
           <h2 className="text-xl font-bold text-indigo-500 mb-2">{bookName} 자료 등록</h2>
           <p className="text-sm text-gray-500 mb-4">{bookName} 자료를 업로드하고 메타데이터를 입력하세요.</p>
-          {/* 자료등록 폼 */}
-          <form className="flex flex-col gap-4 flex-1" onSubmit={handleSubmit}>
-            <div>
-              <label className="block text-sm font-medium mb-1">제목</label>
-              <input type="text" name="title" value={form.title} onChange={handleChange} className="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400" placeholder="자료 제목을 입력하세요" required />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">구분</label>
-              <input type="text" value={bookName} disabled className="w-full px-3 py-2 rounded border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-700 text-gray-400" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">설명</label>
-              <textarea name="description" value={form.description} onChange={handleChange} className="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400" placeholder="자료에 대한 설명을 입력하세요" rows={2} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">태그</label>
-              <input type="text" name="tags" value={form.tags} onChange={handleChange} className="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-400" placeholder="태그를 입력하세요 (쉼표로 구분)" />
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="block text-sm font-medium mb-1">파일 업로드</label>
-              <input ref={fileInputRef} type="file" onChange={handleFileChange} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" required />
-            </div>
-            <button type="submit" className="mt-4 w-full py-2 rounded bg-indigo-500 hover:bg-indigo-600 text-white font-semibold shadow transition-all">자료 등록</button>
-          </form>
-        </div>
-        {/* 우측: 자료목록 (6) */}
-        <div className="flex-1 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-md flex flex-col">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
-            <div className="flex flex-col items-center w-full">
-              <h2 className="text-xl font-bold text-emerald-500 mb-1 text-center w-full">{bookName} 자료 목록</h2>
-              <p className="text-sm text-gray-500 text-center w-full">총 {materials.length}개</p>
-            </div>
-            <div className="flex gap-2 mt-2 md:mt-0">
-              <div className="relative">
-                <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+            {/* 1단: 제목(좌), 구분(우) */}
+            <div className="flex flex-row gap-4">
+              <div className="w-1/2 flex items-center gap-2">
+                <label className="text-sm font-semibold whitespace-nowrap">제목 :</label>
                 <input
                   type="text"
-                  placeholder="자료 검색..."
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  className="pl-8 pr-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                  className="input w-full border border-[#6e6c6b] rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white dark:bg-gray-900"
+                  placeholder="제목"
+                  value={form.title}
+                  onChange={e => setForm({ ...form, title: e.target.value })}
+                  required
                 />
               </div>
-              <select
-                className="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
-                value={typeFilter}
-                onChange={e => setTypeFilter(e.target.value)}
-              >
-                <option value="all">모든 형식</option>
-                <option value="HTML">HTML</option>
-                <option value="TEXT">TEXT</option>
-                <option value="MD">MD</option>
-                <option value="PDF">PDF</option>
-                <option value="CSV">CSV</option>
-                <option value="이미지">이미지</option>
-                <option value="음악">음악</option>
-                <option value="기타">기타</option>
-              </select>
+              <div className="w-1/2 flex items-center gap-2">
+                <label className="text-sm font-semibold whitespace-nowrap">구분 :</label>
+                <input
+                  type="text"
+                  className="input input-bordered w-full"
+                  placeholder="구분"
+                  value={bookName}
+                  disabled
+                />
+              </div>
             </div>
+            {/* 2단: 설명(좌), 태그(우) */}
+            <div className="flex flex-row gap-4">
+              <div className="w-1/2 flex items-center gap-2">
+                <label className="text-sm font-semibold whitespace-nowrap">설명 :</label>
+                <input
+                  type="text"
+                  className="input w-full border border-[#6e6c6b] rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white dark:bg-gray-900"
+                  placeholder="설명"
+                  value={form.description}
+                  onChange={e => setForm({ ...form, description: e.target.value })}
+                />
+              </div>
+              <div className="w-1/2 flex items-center gap-2">
+                <label className="text-sm font-semibold whitespace-nowrap">태그 :</label>
+                <input
+                  type="text"
+                  className="input w-full border border-[#6e6c6b] rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white dark:bg-gray-900"
+                  placeholder="태그(쉼표로 구분)"
+                  value={form.tags}
+                  onChange={e => setForm({ ...form, tags: e.target.value })}
+                />
+              </div>
+            </div>
+            {/* 3단: 파일선택(좌), 자료등록(버튼)(우) */}
+            <div className="flex flex-row gap-4 items-center">
+              <div className="w-1/2 flex items-center gap-2">
+                <label className="text-sm font-semibold whitespace-nowrap px-3 py-1 border-2 border-green-500 rounded-full text-green-700">파일선택</label>
+                <input
+                  type="file"
+                  className="file-input w-full border border-[#6e6c6b] rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-400 bg-white dark:bg-gray-900"
+                  onChange={e => setForm({ ...form, file: e.target.files?.[0] ?? null })}
+                  required
+                />
+                {form.file && <span className="ml-2 text-xs text-gray-500">{form.file.name}</span>}
+              </div>
+              <div className="w-1/2 flex justify-end">
+                <button
+                  type="submit"
+                  className="px-6 py-2 bg-green-600 text-white font-semibold rounded-full border border-green-700 shadow hover:bg-green-700 transition-colors"
+                >
+                  자료등록
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+        {/* 우: blank box (40%) */}
+        <div className="w-[40%] min-h-[220px] bg-gray-50 dark:bg-gray-800 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center text-gray-400 text-lg">
+          (추후 구현)
+        </div>
+      </div>
+      {/* 하단: 자료목록 */}
+      <div className="w-full bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-md flex flex-col mt-4">
+        <div className="flex flex-row items-center justify-between mb-4">
+          <div className="flex flex-row items-center gap-3">
+            <span className="text-xl font-bold text-emerald-400">{bookName} 자료 목록</span>
+            <span className="text-gray-400 text-base">총 {materials.length}개</span>
           </div>
-          <div className="overflow-x-auto flex-1">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-700">
-                  <th className="text-left py-2 px-3 font-medium text-gray-400 w-[28%]">제목</th>
-                  <th className="text-left py-2 px-3 font-medium text-gray-400 w-[13%]">구분</th>
-                  <th className="text-left py-2 px-3 font-medium text-gray-400 w-[15%]">미리보기</th>
-                  <th className="text-left py-2 px-3 font-medium text-gray-400 w-[24%]">파일명</th>
-                  <th className="text-left py-2 px-3 font-medium text-gray-400 w-[20%]">관리</th>
+          <div className="flex flex-row items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="자료 검색..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="pl-8 pr-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              />
+            </div>
+            <select
+              className="px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
+              value={typeFilter}
+              onChange={e => setTypeFilter(e.target.value)}
+            >
+              <option value="all">모든 형식</option>
+              <option value="HTML">HTML</option>
+              <option value="TEXT">TEXT</option>
+              <option value="MD">MD</option>
+              <option value="PDF">PDF</option>
+              <option value="CSV">CSV</option>
+              <option value="이미지">이미지</option>
+              <option value="음악">음악</option>
+              <option value="기타">기타</option>
+            </select>
+          </div>
+        </div>
+        <div className="overflow-x-auto flex-1">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-200 dark:border-gray-700">
+                <th className="text-left py-2 px-3 font-medium text-gray-400 w-[22%]">제목</th>
+                <th className="text-left py-2 px-3 font-medium text-gray-400 w-[13%] whitespace-nowrap">구분</th>
+                <th className="text-left py-2 px-3 font-medium text-gray-400 w-[13%] whitespace-nowrap">미리보기</th>
+                <th className="text-left py-2 px-3 font-medium text-gray-400 w-[22%]">파일명</th>
+                <th className="text-left py-2 px-3 font-medium text-gray-400 w-[15%]">상태</th>
+                <th className="text-left py-2 px-3 font-medium text-gray-400 w-[100px]">관리</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pagedMaterials.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="text-center py-12">
+                    <File className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+                    <div className="text-gray-400">등록된 자료가 없습니다.</div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {pagedMaterials.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="text-center py-12">
-                      <File className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-                      <div className="text-gray-400">등록된 자료가 없습니다.</div>
-                    </td>
-                  </tr>
-                ) : (
-                  pagedMaterials.map((mat) => (
-                    editId === mat.id ? (
-                      <tr key={mat.id} className="border-b border-gray-100 dark:border-gray-800 bg-emerald-50/30 dark:bg-gray-800 transition-all">
-                        <td className="py-2 px-3 font-medium text-gray-700 dark:text-gray-200">
-                          <input
-                            type="text"
-                            value={editForm.title}
-                            onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))}
-                            onKeyDown={e => handleEditKeyDown(e, mat.id)}
-                            className="w-full px-2 py-1 rounded border border-emerald-300"
-                            autoFocus
-                          />
-                        </td>
-                        <td className="py-2 px-3 text-gray-500 dark:text-gray-400">{mat.book}</td>
-                        <td className="py-2 px-3 text-gray-500 dark:text-gray-400 flex items-center justify-center"><Eye className="w-5 h-5 text-emerald-400" /></td>
-                        <td className="py-2 px-3 text-gray-500 dark:text-gray-400 max-w-[160px] truncate" title={mat.fileName}>{mat.fileName}</td>
-                        <td className="py-2 px-3 text-gray-400 flex gap-2">
-                          <button onClick={() => handleEditSave(mat.id)} className="px-2 py-1 rounded bg-emerald-500 text-white font-semibold hover:bg-emerald-600">저장</button>
-                          <button onClick={handleEditCancel} className="px-2 py-1 rounded bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300">취소</button>
-                        </td>
-                      </tr>
-                    ) : (
-                      <tr key={mat.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">
-                        <td className="py-2 px-3 font-medium text-gray-700 dark:text-gray-200">{mat.title}</td>
-                        <td className="py-2 px-3 text-gray-500 dark:text-gray-400">{mat.book}</td>
-                        <td className="py-2 px-3 text-gray-500 dark:text-gray-400 flex items-center justify-center"><Eye className="w-5 h-5 text-emerald-400 hover:text-emerald-600 cursor-pointer" /></td>
-                        <td className="py-2 px-3 text-gray-500 dark:text-gray-400 max-w-[160px] truncate" title={mat.fileName}>{mat.fileName}</td>
-                        <td className="py-2 px-3 text-gray-400 flex gap-2">
-                          <button onClick={() => handleEdit(mat)} title="수정" className="p-1 rounded hover:bg-emerald-50 group">
-                            <Edit className="w-5 h-5 text-gray-400 group-hover:text-emerald-500 transition-colors" />
-                          </button>
-                          <button onClick={() => handleDownload(mat)} title="다운로드" className="p-1 rounded hover:bg-blue-50 group">
-                            <Download className="w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors" />
-                          </button>
-                          <button onClick={() => handleDelete(mat)} title="삭제" className="p-1 rounded hover:bg-red-50 group">
-                            <Trash2 className="w-5 h-5 text-gray-400 group-hover:text-red-500 transition-colors" />
-                          </button>
-                        </td>
-                      </tr>
-                    )
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-          {/* 페이지네이션 + 수량 선택 */}
-          <div className="flex justify-between items-center mt-4">
-            <div />
-            <div className="flex items-center gap-2 ml-auto">
-              <nav className="flex items-center gap-1">
-                {Array.from({ length: totalPages }, (_, i) => (
-                  <button
-                    key={i + 1}
-                    onClick={() => setPage(i + 1)}
-                    className={`px-2 py-1 rounded ${page === i + 1 ? "bg-emerald-500 text-white" : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300"} font-semibold text-sm hover:bg-emerald-400 hover:text-white transition-all`}
-                  >
-                    {i + 1}
-                  </button>
-                ))}
-              </nav>
-              <select
-                className="ml-4 px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
-                value={pageSize}
-                onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}
-              >
-                <option value={10}>10개</option>
-                <option value={20}>20개</option>
-                <option value={30}>30개</option>
-              </select>
-            </div>
+              ) : (
+                pagedMaterials.map((mat) => (
+                  editId === mat.id ? (
+                    <tr key={mat.id} className="border-b border-gray-100 dark:border-gray-800 bg-emerald-50/30 dark:bg-gray-800 transition-all">
+                      <td className="py-2 px-3 font-medium text-gray-700 dark:text-gray-200">
+                        <input
+                          type="text"
+                          value={editForm.title}
+                          onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))}
+                          onKeyDown={e => handleEditKeyDown(e, mat.id)}
+                          className="w-full px-2 py-1 rounded border border-emerald-300"
+                          autoFocus
+                        />
+                      </td>
+                      <td className="py-2 px-3 text-gray-500 dark:text-gray-400 whitespace-nowrap truncate max-w-[100px]" title={bookName}>{bookName}</td>
+                      <td className="py-2 px-3 text-gray-500 dark:text-gray-400 flex items-center justify-center"><Eye className="w-5 h-5 text-emerald-400" /></td>
+                      <td className="py-2 px-3 text-gray-500 dark:text-gray-400 whitespace-nowrap truncate max-w-[180px]" title={mat.fileName}>{mat.fileName}</td>
+                      <td className="py-2 px-3"><span className="text-xs text-green-700">동기화됨</span></td>
+                      <td className="py-2 px-3 text-gray-400 flex gap-2">
+                        <button onClick={() => handleEditSave(mat.id)} className="px-2 py-1 rounded bg-emerald-500 text-white font-semibold hover:bg-emerald-600">저장</button>
+                        <button onClick={handleEditCancel} className="px-2 py-1 rounded bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300">취소</button>
+                      </td>
+                    </tr>
+                  ) : (
+                    <tr key={mat.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">
+                      <td className="py-2 px-3 font-medium text-gray-700 dark:text-gray-200 whitespace-nowrap truncate max-w-[200px]" title={mat.title}>{mat.title}</td>
+                      <td className="py-2 px-3 text-gray-500 dark:text-gray-400 whitespace-nowrap truncate max-w-[100px]" title={bookName}>{bookName}</td>
+                      <td className="py-2 px-3 text-gray-500 dark:text-gray-400 flex items-center justify-center"><Eye className="w-5 h-5 text-emerald-400" /></td>
+                      <td className="py-2 px-3 text-gray-500 dark:text-gray-400 whitespace-nowrap truncate max-w-[180px]" title={mat.fileName}>{mat.fileName}</td>
+                      <td className="py-2 px-3"><span className="text-xs text-green-700">동기화됨</span></td>
+                      <td className="py-2 px-3 text-gray-400 flex gap-2">
+                        <button onClick={() => handleEdit(mat)} title="수정" className="p-1 rounded hover:bg-emerald-50 group">
+                          <Edit className="w-5 h-5 text-gray-400 group-hover:text-emerald-500 transition-colors" />
+                        </button>
+                        <button onClick={() => handleDownload(mat)} title="다운로드" className="p-1 rounded hover:bg-blue-50 group">
+                          <Download className="w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                        </button>
+                        <button onClick={() => handleDelete(mat)} title="삭제" className="p-1 rounded hover:bg-red-50 group">
+                          <Trash2 className="w-5 h-5 text-gray-400 group-hover:text-red-500 transition-colors" />
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        {/* 페이지네이션 + 수량 선택 */}
+        <div className="flex justify-between items-center mt-4">
+          <div />
+          <div className="flex items-center gap-2 ml-auto">
+            <nav className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => (
+                <button
+                  key={i + 1}
+                  onClick={() => setPage(i + 1)}
+                  className={`px-2 py-1 rounded ${page === i + 1 ? "bg-emerald-500 text-white" : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300"} font-semibold text-sm hover:bg-emerald-400 hover:text-white transition-all`}
+                >
+                  {i + 1}
+                </button>
+              ))}
+            </nav>
+            <select
+              className="ml-4 px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
+              value={pageSize}
+              onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}
+            >
+              <option value={10}>10개</option>
+              <option value={20}>20개</option>
+              <option value={30}>30개</option>
+            </select>
           </div>
         </div>
       </div>

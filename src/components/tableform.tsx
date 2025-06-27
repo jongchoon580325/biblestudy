@@ -1,12 +1,11 @@
-import React from 'react';
-import { Eye, Edit, Trash2, Download, Check, AlertCircle, Clock, RefreshCw, X, File } from 'lucide-react';
+import React, { useState } from 'react';
+import { Eye, Edit, Download, Check, AlertCircle, Clock, RefreshCw, X, File } from 'lucide-react';
 import type { Material } from './inputtableform';
 
 // TableForm 컴포넌트 Props 타입
 interface TableFormProps {
   materials: Material[];
   onEdit?: (material: Material) => void;
-  onDelete?: (material: Material) => void;
   onDownload?: (material: Material) => void;
   onPreview?: (material: Material) => void;
 }
@@ -18,10 +17,15 @@ interface TableFormProps {
 const TableForm: React.FC<TableFormProps> = ({
   materials,
   onEdit,
-  onDelete,
   onDownload,
   onPreview
 }) => {
+  // 페이지네이션 상태
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const totalPages = Math.max(1, Math.ceil(materials.length / pageSize));
+  const pagedMaterials = materials.slice((page - 1) * pageSize, page * pageSize);
+
   // 동기화 상태 뱃지 렌더러
   const getSyncStatusBadge = (status: string) => {
     const configs: Record<string, { color: string; icon: React.FC<{className?: string}>; text: string }> = {
@@ -42,36 +46,34 @@ const TableForm: React.FC<TableFormProps> = ({
   };
 
   return (
-    <div className="overflow-x-auto w-[85vw] max-w-6xl mx-auto">
+    <div className="overflow-x-auto w-full max-w-full">
       <table className="w-full mx-auto">
         <thead>
           <tr className="border-b border-gray-700">
-            <th className="text-left py-3 px-4 font-medium text-gray-300 w-[30%] whitespace-nowrap">제목</th>
-            <th className="text-left py-3 px-4 font-medium text-gray-300 w-[15%] whitespace-nowrap">구분</th>
-            <th className="text-left py-3 px-4 font-medium text-gray-300 w-[10%] whitespace-nowrap">미리보기</th>
-            <th className="text-left py-3 px-4 font-medium text-gray-300 w-[25%] whitespace-nowrap">파일명</th>
-            <th className="text-left py-3 px-4 font-medium text-gray-300 w-[20%] whitespace-nowrap">관리</th>
+            <th className="text-left py-2 px-4 font-medium text-gray-300 w-[25%] whitespace-nowrap">제목</th>
+            <th className="text-left py-2 px-4 font-medium text-gray-300 w-[13%] whitespace-nowrap">구분</th>
+            <th className="text-left py-2 px-4 font-medium text-gray-300 w-[10%] whitespace-nowrap">미리보기</th>
+            <th className="text-left py-2 px-4 font-medium text-gray-300 w-[17%] whitespace-nowrap">파일명</th>
+            <th className="text-left py-2 px-4 font-medium text-gray-300 w-[15%] whitespace-nowrap">상태</th>
+            <th className="text-left py-2 px-4 font-medium text-gray-300 w-[20%] whitespace-nowrap">관리</th>
           </tr>
         </thead>
         <tbody>
-          {materials.map((material, index) => (
+          {pagedMaterials.map((material, index) => (
             <tr
               key={material.local_id}
               className={`border-b border-gray-700 hover:bg-gray-700/50 transition-colors ${
                 index % 2 === 0 ? 'bg-gray-800/30' : 'bg-gray-800/60'
               }`}
             >
-              <td className="py-4 px-4">
+              <td className="py-2 px-4">
                 <div>
-                  <div className="font-medium text-white truncate max-w-[200px]" title={material.title}>
+                  <div className="font-normal text-white text-base truncate max-w-[200px]" title={material.title}>
                     {material.title}
-                  </div>
-                  <div className="flex items-center space-x-2 mt-1">
-                    {getSyncStatusBadge(material.sync_status)}
                   </div>
                 </div>
               </td>
-              <td className="py-4 px-4">
+              <td className="py-2 px-4">
                 <span
                   className="px-2 py-1 bg-indigo-500/20 text-indigo-300 rounded-full text-xs truncate max-w-[100px] inline-block"
                   title={material.bible_book || '일반자료'}
@@ -79,7 +81,7 @@ const TableForm: React.FC<TableFormProps> = ({
                   {material.bible_book || '일반자료'}
                 </span>
               </td>
-              <td className="py-4 px-4">
+              <td className="py-2 px-4">
                 <button
                   onClick={() => onPreview?.(material)}
                   className="p-2 hover:bg-gray-600 rounded-lg transition-colors"
@@ -87,12 +89,15 @@ const TableForm: React.FC<TableFormProps> = ({
                   <Eye className="w-4 h-4 text-blue-400 hover:text-blue-300" />
                 </button>
               </td>
-              <td className="py-4 px-4">
+              <td className="py-2 px-4">
                 <span className="text-sm text-gray-300 font-mono truncate max-w-[150px] block" title={material.file_name}>
                   {material.file_name}
                 </span>
               </td>
-              <td className="py-4 px-4">
+              <td className="py-2 px-4">
+                {getSyncStatusBadge(material.sync_status)}
+              </td>
+              <td className="py-2 px-4">
                 <div className="flex items-center space-x-2">
                   {material.is_editable && (
                     <button
@@ -110,13 +115,6 @@ const TableForm: React.FC<TableFormProps> = ({
                   >
                     <Download className="w-4 h-4 text-gray-400 group-hover:text-blue-400 transition-colors" />
                   </button>
-                  <button
-                    onClick={() => onDelete?.(material)}
-                    className="p-1 hover:bg-gray-600 rounded transition-colors group"
-                    title="삭제"
-                  >
-                    <Trash2 className="w-4 h-4 text-gray-400 group-hover:text-red-400 transition-colors" />
-                  </button>
                 </div>
               </td>
             </tr>
@@ -129,6 +127,29 @@ const TableForm: React.FC<TableFormProps> = ({
           <p className="text-gray-400">등록된 자료가 없습니다.</p>
         </div>
       )}
+      {/* 페이지네이션 + 페이지사이즈 드롭다운 */}
+      <div className="flex justify-end items-center mt-2 gap-2 border-t bg-inherit pt-3">
+        <nav className="flex items-center gap-1">
+          {Array.from({ length: totalPages }, (_, i) => (
+            <button
+              key={i + 1}
+              onClick={() => setPage(i + 1)}
+              className={`px-2 py-1 rounded ${page === i + 1 ? 'bg-emerald-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'} font-semibold text-sm hover:bg-emerald-400 hover:text-white transition-all`}
+            >
+              {i + 1}
+            </button>
+          ))}
+        </nav>
+        <select
+          className="ml-4 px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
+          value={pageSize}
+          onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}
+        >
+          <option value={10}>10개</option>
+          <option value={20}>20개</option>
+          <option value={30}>30개</option>
+        </select>
+      </div>
     </div>
   );
 };

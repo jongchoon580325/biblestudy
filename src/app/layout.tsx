@@ -27,11 +27,11 @@ function Header() {
         <span className="text-lg font-bold">성경자료 관리</span>
       </div>
       <nav className="flex-1 flex justify-center space-x-4 text-sm font-medium">
-        <Link href="/" className="hover:text-indigo-600">홈</Link>
-        <Link href="/all-materials" className="hover:text-indigo-600">전체자료실</Link>
-        <Link href="/bible" className="hover:text-indigo-600">성경자료실</Link>
-        <Link href="/general-materials" className="hover:text-indigo-600">일반자료실</Link>
-        <Link href="/data-management" className="hover:text-indigo-600">데이터관리</Link>
+        <Link href="/" className="hover:text-[#eba434]">홈</Link>
+        <Link href="/all-materials" className="hover:text-[#eba434]">전체자료실</Link>
+        <Link href="/bible" className="hover:text-[#eba434]">성경자료실</Link>
+        <Link href="/general-materials" className="hover:text-[#eba434]">일반자료실</Link>
+        <Link href="/data-management" className="hover:text-[#eba434]">데이터관리</Link>
       </nav>
     </header>
   );
