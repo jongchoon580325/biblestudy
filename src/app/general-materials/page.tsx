@@ -1,21 +1,9 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { File as FileIcon, Search, Eye, Edit, Download, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-
-interface Material {
-  id: number;
-  title: string;
-  description: string;
-  tags: string[];
-  fileName: string;
-  fileSize: number;
-  fileType: string;
-  category: string; // '일반자료' 고정
-  file: File;
-  sync_status?: string;
-  content?: string;
-}
+import { addMaterial, getAllMaterials, deleteMaterial } from "@/utils/storage-utils";
+import { MaterialRecord } from "@/types/storage.types";
 
 export default function GeneralMaterialsPage() {
   const [form, setForm] = useState({
@@ -24,93 +12,108 @@ export default function GeneralMaterialsPage() {
     tags: "",
     file: null as File | null,
   });
-  const [materials, setMaterials] = useState<Material[]>([]);
-  const [editId, setEditId] = useState<number | null>(null);
+  const [materials, setMaterials] = useState<MaterialRecord[]>([]);
+  const [editId, setEditId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ title: "", description: "", tags: "" });
-  const [modal, setModal] = useState<{ type: null | "edit" | "download" | "delete"; mat?: Material }>({ type: null });
+  const [modal, setModal] = useState<{ type: null | "edit" | "download" | "delete"; mat?: MaterialRecord }>({ type: null });
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
-  const [downloadFileName, setDownloadFileName] = useState("");
+  const [downloadFileName, setDownloadFileName] = useState<string>("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+
+  // 마운트 시 IndexedDB에서 자료 불러오기 (일반자료실 전용)
+  useEffect(() => {
+    getAllMaterials().then((all) => {
+      setMaterials(all.filter((mat) => mat.category_type === 'general'));
+    });
+  }, []);
 
   // 자료 등록
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title || !form.file) return;
     const file = form.file;
-    // 파일 내용 읽기 (텍스트/코드 파일만)
-    const ext = file.name.split('.').pop()?.toLowerCase() || "";
-    const isText = ["md", "markdown", "txt", "html", "csv"].includes(ext);
-    let content = "";
-    if (isText) {
-      content = await new Promise<string>((resolve, reject) => {
+    // 파일 바이너리 읽기
+    let fileData: ArrayBuffer | undefined = undefined;
+    try {
+      fileData = await new Promise<ArrayBuffer>((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
+        reader.onload = () => resolve(reader.result as ArrayBuffer);
         reader.onerror = () => reject(reader.error);
-        reader.readAsText(file);
+        reader.readAsArrayBuffer(file);
       });
-    }
-    const newMaterial = {
-      id: Date.now(),
+    } catch {}
+    // IndexedDB용 자료 타입 생성
+    const newMaterial: MaterialRecord = {
+      local_id: crypto.randomUUID(),
       title: form.title,
       description: form.description,
+      category_type: "general",
+      file_name: file.name ?? '',
+      file_size: file.size,
+      file_type: file.type,
+      file_data: fileData,
+      file_url: undefined,
       tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
-      fileName: file.name,
-      fileSize: file.size,
-      fileType: file.type,
-      category: "일반자료",
-      file,
-      sync_status: 'synced',
-      content,
+      metadata: {},
+      created_at: new Date(),
+      updated_at: new Date(),
+      sync_status: "pending",
+      sync_version: 1,
+      is_deleted: false,
+      storage_location: "local",
+      last_sync: undefined,
+      bible_book: undefined,
     };
-    setMaterials((prev) => {
-      const next = [...prev, newMaterial];
-      localStorage.setItem('generalMaterials', JSON.stringify(next));
-      return next;
-    });
+    await addMaterial(newMaterial);
+    setMaterials(await getAllMaterials());
     setForm({ title: "", description: "", tags: "", file: null });
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   // 인라인 에디트
-  const handleEdit = (mat: Material) => {
-    setEditId(mat.id);
-    setEditForm({ title: mat.title, description: mat.description, tags: mat.tags.join(", ") });
+  const handleEdit = (mat: MaterialRecord) => {
+    setEditId(mat.local_id);
+    setEditForm({ title: mat.title, description: mat.description ?? '', tags: mat.tags.join(", ") });
   };
-  const handleEditSave = (id: number) => {
-    setMaterials((prev) => prev.map((m) => m.id === id ? { ...m, title: editForm.title, description: editForm.description, tags: editForm.tags.split(",").map(t => t.trim()).filter(Boolean) } : m));
+  const handleEditSave = (id: string) => {
+    setMaterials((prev) => prev.map((m) => m.local_id === id ? { ...m, title: editForm.title, description: editForm.description, tags: editForm.tags.split(",").map(t => t.trim()).filter(Boolean) } : m));
     setEditId(null);
   };
   const handleEditCancel = () => setEditId(null);
-  const handleEditKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, id: number) => {
+  const handleEditKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, id: string) => {
     if (e.key === "Enter") handleEditSave(id);
   };
 
   // 다운로드
-  const handleDownload = (mat: Material) => {
-    setDownloadFileName(mat.fileName);
+  const handleDownload = (mat: MaterialRecord) => {
+    setDownloadFileName(mat.file_name);
     setModal({ type: "download", mat });
   };
 
   // 삭제
-  const handleDelete = (mat: Material) => {
+  const handleDelete = (mat: MaterialRecord) => {
     setModal({ type: "delete", mat });
   };
 
   // 모달 확인
-  const handleModalConfirm = () => {
+  const handleModalConfirm = async () => {
     if (modal.type === "delete" && modal.mat) {
-      setMaterials((prev) => prev.filter((m) => m.id !== modal.mat!.id));
-    } else if (modal.type === "download" && modal.mat) {
-      const file = modal.mat.file;
-      const blob = new Blob([file], { type: file.type });
+      await deleteMaterial(modal.mat.local_id);
+      setMaterials(await getAllMaterials());
+    } else if (modal.type === "download") {
+      if (!modal.mat) return;
+      // file_data가 없으면 빈 ArrayBuffer로 대체
+      const file = modal.mat.file_data ?? new ArrayBuffer(0);
+      const blob = new Blob([file], { type: modal.mat.file_type });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = downloadFileName || file.name;
+      const fileName = typeof modal.mat.file_name === 'string' ? modal.mat.file_name : 'download';
+      a.download = String(downloadFileName && downloadFileName.length > 0 ? downloadFileName : fileName);
       document.body.appendChild(a);
       a.click();
       setTimeout(() => {
@@ -123,9 +126,8 @@ export default function GeneralMaterialsPage() {
   const handleModalCancel = () => setModal({ type: null });
 
   // 미리보기 상세페이지 이동 핸들러
-  const handlePreview = (mat: Material) => {
-    // 상세 미리보기 라우트로 이동: /general-materials/preview/[materialId]
-    router.push(`/general-materials/preview/${mat.id}`);
+  const handlePreview = (mat: MaterialRecord) => {
+    router.push(`/general-materials/preview/${mat.local_id}`);
   };
 
   // 필터링
@@ -133,9 +135,9 @@ export default function GeneralMaterialsPage() {
     const q = search.trim().toLowerCase();
     const match =
       mat.title.toLowerCase().includes(q) ||
-      mat.description.toLowerCase().includes(q) ||
+      (mat.description || "").toLowerCase().includes(q) ||
       mat.tags.some((t) => t.toLowerCase().includes(q));
-    const ext = mat.fileName.split('.').pop()?.toLowerCase() || "";
+    const ext = mat.file_name.split('.').pop()?.toLowerCase() || "";
     let typeOk = true;
     if (typeFilter !== "all") {
       if (typeFilter === "HTML") typeOk = ["html", "htm"].includes(ext);
@@ -296,19 +298,19 @@ export default function GeneralMaterialsPage() {
                 </tr>
               ) : (
                 pagedMaterials.map((mat) => (
-                  editId === mat.id ? (
-                    <tr key={mat.id} className="border-b border-gray-100 dark:border-gray-800 bg-emerald-50/30 dark:bg-gray-800 transition-all">
+                  editId === mat.local_id ? (
+                    <tr key={mat.local_id} className="border-b border-gray-100 dark:border-gray-800 bg-emerald-50/30 dark:bg-gray-800 transition-all">
                       <td className="py-2 px-3 font-medium text-gray-700 dark:text-gray-200 whitespace-nowrap truncate max-w-[200px]" title={mat.title}>
                         <input
                           type="text"
                           value={editForm.title}
                           onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))}
-                          onKeyDown={e => handleEditKeyDown(e, mat.id)}
+                          onKeyDown={e => handleEditKeyDown(e, mat.local_id)}
                           className="w-full px-2 py-1 rounded border border-emerald-300"
                           autoFocus
                         />
                       </td>
-                      <td className="py-2 px-3 text-gray-500 dark:text-gray-400 whitespace-nowrap truncate max-w-[100px]" title={mat.category}>{mat.category}</td>
+                      <td className="py-2 px-3 text-gray-500 dark:text-gray-400 whitespace-nowrap truncate max-w-[100px]" title={mat.category_type}>{mat.category_type}</td>
                       <td className="py-2 px-3 text-gray-500 dark:text-gray-400 flex items-center justify-center">
                         <Eye
                           className="w-5 h-5 text-emerald-400 hover:text-emerald-600 cursor-pointer"
@@ -319,17 +321,17 @@ export default function GeneralMaterialsPage() {
                           onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') handlePreview(mat); }}
                         />
                       </td>
-                      <td className="py-2 px-3 text-gray-500 dark:text-gray-400 whitespace-nowrap truncate max-w-[180px]" title={mat.fileName}>{mat.fileName}</td>
+                      <td className="py-2 px-3 text-gray-500 dark:text-gray-400 whitespace-nowrap truncate max-w-[180px]" title={mat.file_name}>{mat.file_name}</td>
                       <td className="py-2 px-3"><span className="text-xs text-green-700">동기화됨</span></td>
                       <td className="py-2 px-3 text-gray-400 flex gap-2">
-                        <button onClick={() => handleEditSave(mat.id)} className="px-2 py-1 rounded bg-emerald-500 text-white font-semibold hover:bg-emerald-600">저장</button>
+                        <button onClick={() => handleEditSave(mat.local_id)} className="px-2 py-1 rounded bg-emerald-500 text-white font-semibold hover:bg-emerald-600">저장</button>
                         <button onClick={handleEditCancel} className="px-2 py-1 rounded bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300">취소</button>
                       </td>
                     </tr>
                   ) : (
-                    <tr key={mat.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">
+                    <tr key={mat.local_id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">
                       <td className="py-2 px-3 font-medium text-gray-700 dark:text-gray-200 whitespace-nowrap truncate max-w-[200px]" title={mat.title}>{mat.title}</td>
-                      <td className="py-2 px-3 text-gray-500 dark:text-gray-400 whitespace-nowrap truncate max-w-[100px]" title={mat.category}>{mat.category}</td>
+                      <td className="py-2 px-3 text-gray-500 dark:text-gray-400 whitespace-nowrap truncate max-w-[100px]" title={mat.category_type}>{mat.category_type}</td>
                       <td className="py-2 px-3 text-gray-500 dark:text-gray-400 flex items-center justify-center">
                         <Eye
                           className="w-5 h-5 text-emerald-400 hover:text-emerald-600 cursor-pointer"
@@ -340,7 +342,7 @@ export default function GeneralMaterialsPage() {
                           onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') handlePreview(mat); }}
                         />
                       </td>
-                      <td className="py-2 px-3 text-gray-500 dark:text-gray-400 whitespace-nowrap truncate max-w-[180px]" title={mat.fileName}>{mat.fileName}</td>
+                      <td className="py-2 px-3 text-gray-500 dark:text-gray-400 whitespace-nowrap truncate max-w-[180px]" title={mat.file_name}>{mat.file_name}</td>
                       <td className="py-2 px-3"><span className="text-xs text-green-700">동기화됨</span></td>
                       <td className="py-2 px-3 text-gray-400 flex gap-2">
                         <button onClick={() => handleEdit(mat)} title="수정" className="p-1 rounded hover:bg-emerald-50 group">
@@ -398,7 +400,7 @@ export default function GeneralMaterialsPage() {
                 {modal.type === "delete" && "정말 삭제하시겠습니까?"}
                 {modal.type === "download" && "다운로드 하시겠습니까?"}
               </div>
-              <div className="text-gray-500 text-sm text-center mb-2">{modal.mat?.title} ({modal.mat?.fileName})</div>
+              <div className="text-gray-500 text-sm text-center mb-2">{modal.mat?.title} ({modal.mat?.file_name})</div>
               {modal.type === "download" && (
                 <input
                   type="text"

@@ -3,45 +3,67 @@ import { useRouter, useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { ArrowLeft, Download, Maximize2, Pencil } from "lucide-react";
 import Image from "next/image";
-
-interface Material {
-  id: number;
-  title: string;
-  description: string;
-  tags: string[];
-  fileName: string;
-  fileSize: number;
-  fileType: string;
-  category: string;
-  file: File;
-  sync_status?: string;
-  content?: string;
-}
+import { openHybridDB } from "@/utils/storage-utils";
+import { MaterialRecord } from "@/types/storage.types";
 
 export default function PreviewPage() {
   const router = useRouter();
   const params = useParams();
-  const materialId = params?.materialId;
-  const [material, setMaterial] = useState<Material | null>(null);
+  const materialId = params?.materialId as string;
+  const [material, setMaterial] = useState<MaterialRecord | null>(null);
   const [isEdit, setIsEdit] = useState(false);
   const [isFull, setIsFull] = useState(false);
   const [content, setContent] = useState("");
   const [showDownloadModal, setShowDownloadModal] = useState(false);
-  const [downloadName, setDownloadName] = useState(material?.fileName || "");
+  const [downloadName, setDownloadName] = useState("");
 
-  // 실제 파일 데이터 fetch (localStorage에서 조회, 추후 서버 연동 가능)
+  // IndexedDB에서 자료 조회
   useEffect(() => {
     if (!materialId) return;
-    // localStorage에 저장된 자료 배열에서 materialId로 검색
-    const stored = localStorage.getItem("generalMaterials");
-    if (stored) {
-      const arr: Material[] = JSON.parse(stored);
-      const found = arr.find((m) => String(m.id) === String(materialId));
-      if (found) {
-        setMaterial(found);
-        setContent(found.content || "");
-      }
-    }
+    openHybridDB().then(db => {
+      const tx = db.transaction("materials", "readonly");
+      const req = tx.objectStore("materials").get(materialId);
+      req.onsuccess = () => {
+        const found = req.result as MaterialRecord | undefined;
+        if (found) {
+          setMaterial(found);
+          // 파일 확장자별로 content 추출
+          const ext = found.file_name.split('.').pop()?.toLowerCase() || '';
+          if (["md","markdown","txt","html","csv"].includes(ext)) {
+            // 텍스트 파일: file_data → text 변환
+            if (found.file_data) {
+              const reader = new FileReader();
+              reader.onload = () => setContent(reader.result as string);
+              reader.readAsText(new Blob([found.file_data], { type: found.file_type }));
+            } else {
+              setContent("");
+            }
+          } else if (["jpg","jpeg","png","gif","bmp","webp"].includes(ext)) {
+            // 이미지: file_data → dataURL 변환
+            if (found.file_data) {
+              const reader = new FileReader();
+              reader.onload = () => setContent(reader.result as string);
+              reader.readAsDataURL(new Blob([found.file_data], { type: found.file_type }));
+            } else {
+              setContent("");
+            }
+          } else if (ext === "pdf") {
+            // PDF: Blob URL
+            if (found.file_data) {
+              const blob = new Blob([found.file_data], { type: found.file_type });
+              setContent(URL.createObjectURL(blob));
+            } else {
+              setContent("");
+            }
+          } else {
+            setContent("");
+          }
+        } else {
+          setMaterial(null);
+        }
+      };
+      req.onerror = () => setMaterial(null);
+    });
   }, [materialId]);
 
   if (!material) {
@@ -54,8 +76,8 @@ export default function PreviewPage() {
   }
 
   // 확장자 판별(파일명, fileType 모두 고려)
-  const ext = material.fileName.split('.').pop()?.toLowerCase() || '';
-  const editable = ["md", "markdown", "txt", "html", "csv"].includes(ext) || ["md", "markdown", "txt", "html", "csv"].includes((material.fileType || '').toLowerCase());
+  const ext = material.file_name.split('.').pop()?.toLowerCase() || '';
+  const editable = ["md", "markdown", "txt", "html", "csv"].includes(ext) || ["md", "markdown", "txt", "html", "csv"].includes((material.file_type || '').toLowerCase());
 
   // 전체보기 ESC 핸들러
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -117,7 +139,7 @@ export default function PreviewPage() {
       {/* 1단: 상단 바 */}
       <div className="flex flex-row items-center justify-between mb-4">
         <button onClick={() => router.back()} className="p-2"><ArrowLeft className="w-6 h-6 text-gray-400 hover:text-emerald-400" /></button>
-        <span className="text-lg font-bold text-white">{material.fileName}</span>
+        <span className="text-lg font-bold text-white">{material.file_name}</span>
         <div className="w-10" />
       </div>
       {/* 2단: 액션 바 */}
@@ -134,7 +156,7 @@ export default function PreviewPage() {
           <button
             title="다운로드"
             className="p-2 rounded-full hover:bg-blue-50 hover:text-blue-500 group"
-            onClick={() => { setDownloadName(material.fileName); setShowDownloadModal(true); }}
+            onClick={() => { setDownloadName(material.file_name); setShowDownloadModal(true); }}
           >
             <Download className="w-5 h-5 text-white group-hover:text-blue-500 transition-colors" />
           </button>
@@ -188,7 +210,7 @@ export default function PreviewPage() {
           <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-8 min-w-[320px] flex flex-col items-center">
             <Download className="w-10 h-10 text-blue-500 mb-2 mx-auto" />
             <div className="text-lg font-bold mb-2 text-center">다운로드 하시겠습니까?</div>
-            <div className="text-gray-500 text-sm text-center mb-2">{material.title} ({material.fileName})</div>
+            <div className="text-gray-500 text-sm text-center mb-2">{material.title} ({material.file_name})</div>
             <input
               type="text"
               className="w-full px-3 py-2 rounded border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 text-center mb-4"
@@ -200,12 +222,12 @@ export default function PreviewPage() {
               <button
                 onClick={() => {
                   // 다운로드 실행
-                  const file = material.file;
-                  const blob = new Blob([file], { type: file.type });
+                  const file = material.file_data ?? new ArrayBuffer(0);
+                  const blob = new Blob([file], { type: material.file_type });
                   const url = URL.createObjectURL(blob);
                   const a = document.createElement("a");
                   a.href = url;
-                  a.download = downloadName || file.name;
+                  a.download = material.file_name;
                   document.body.appendChild(a);
                   a.click();
                   setTimeout(() => {

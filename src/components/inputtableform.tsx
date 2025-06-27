@@ -24,6 +24,7 @@ export interface Material {
   storage_location: 'local' | 'server' | 'both';
   created_at: Date;
   updated_at: Date;
+  file_data?: ArrayBuffer; // 로컬 파일 데이터(옵션)
 }
 
 export interface UploadFile {

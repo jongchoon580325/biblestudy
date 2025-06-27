@@ -1,19 +1,44 @@
 // 전체자료실(통합 테이블) 페이지
 'use client';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import TableForm from '../../components/tableform';
 import { Search } from 'lucide-react';
+import { getAllMaterials } from "@/utils/storage-utils";
+import { Material } from "@/components/inputtableform";
+import PreviewContent from '../../components/preview-content';
+
+// 미리보기 모달 - filepreview-advanced 기반
+function PreviewModal({ material, onClose }: { material: Material, onClose: () => void }) {
+  // material에서 ext, content 등 추출 로직은 PreviewContent 내부에서 처리하도록 위임
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-4 min-w-[320px] max-w-3xl w-full flex flex-col items-center">
+        <div className="w-full">
+          <PreviewContent material={material} />
+        </div>
+        <button onClick={onClose} className="mt-4 px-4 py-2 bg-emerald-500 text-white rounded">닫기</button>
+      </div>
+    </div>
+  );
+}
 
 export default function AllMaterials() {
-  // 통합 데이터
+  const [materials, setMaterials] = useState<Material[]>([]);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all'|'bible'|'general'>('all');
-  const filtered = useMemo(() => [], []);
+  const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
 
   // 카운트
   const bibleCount = 0;
   const generalCount = 0;
   const totalCount = 0;
+
+  // 마운트 시 IndexedDB에서 전체 자료 불러오기
+  useEffect(() => {
+    getAllMaterials().then((all) => {
+      setMaterials(all.map(mat => ({ ...mat, is_editable: false })));
+    });
+  }, []);
 
   return (
     <main className="w-full max-w-[1200px] mx-auto py-8 min-h-[70vh]">
@@ -47,7 +72,11 @@ export default function AllMaterials() {
         </div>
       </div>
       {/* 테이블 */}
-      <TableForm materials={filtered} />
+      <TableForm materials={materials} onPreview={setSelectedMaterial} />
+      {/* 미리보기 모달 */}
+      {selectedMaterial && (
+        <PreviewModal material={selectedMaterial} onClose={() => setSelectedMaterial(null)} />
+      )}
     </main>
   );
 } 
