@@ -2,97 +2,18 @@
 'use client';
 import React, { useState, useMemo } from 'react';
 import TableForm from '../../components/tableform';
-import type { Material } from '../../components/inputtableform';
 import { Search } from 'lucide-react';
-
-// mock 데이터: 성경자료실/일반자료실
-const bibleMaterials: Material[] = [
-  {
-    local_id: 'b1',
-    title: '창세기 요약문서',
-    description: '창세기 개요',
-    category_type: 'bible',
-    bible_book: '창세기',
-    file_name: 'genesis-summary.pdf',
-    file_size: 123456,
-    file_type: 'pdf',
-    is_editable: false,
-    tags: ['요약','구약'],
-    sync_status: 'synced',
-    storage_location: 'local',
-    created_at: new Date(),
-    updated_at: new Date(),
-  },
-  {
-    local_id: 'b2',
-    title: '마태복음 강의',
-    description: '신약 마태복음 강의자료',
-    category_type: 'bible',
-    bible_book: '마태복음',
-    file_name: 'matthew-lecture.pptx',
-    file_size: 234567,
-    file_type: 'pptx',
-    is_editable: false,
-    tags: ['강의','신약'],
-    sync_status: 'synced',
-    storage_location: 'local',
-    created_at: new Date(),
-    updated_at: new Date(),
-  },
-];
-const generalMaterials: Material[] = [
-  {
-    local_id: 'g1',
-    title: '2024년 행사 안내',
-    description: '교회 행사 일정',
-    category_type: 'general',
-    file_name: 'event-2024.pdf',
-    file_size: 345678,
-    file_type: 'pdf',
-    is_editable: false,
-    tags: ['행사'],
-    sync_status: 'synced',
-    storage_location: 'local',
-    created_at: new Date(),
-    updated_at: new Date(),
-  },
-  {
-    local_id: 'g2',
-    title: '공지사항',
-    description: '공지 모음',
-    category_type: 'general',
-    file_name: 'notice.txt',
-    file_size: 4567,
-    file_type: 'txt',
-    is_editable: false,
-    tags: ['공지'],
-    sync_status: 'synced',
-    storage_location: 'local',
-    created_at: new Date(),
-    updated_at: new Date(),
-  },
-];
 
 export default function AllMaterials() {
   // 통합 데이터
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all'|'bible'|'general'>('all');
-  const allMaterials = useMemo(() => [...bibleMaterials, ...generalMaterials], []);
-
-  // 필터/검색 적용
-  const filtered = useMemo(() => {
-    return allMaterials.filter(mat => {
-      const matchType = filter === 'all' ? true : mat.category_type === filter;
-      const q = search.trim().toLowerCase();
-      const matchTitle = mat.title.toLowerCase().includes(q);
-      return matchType && matchTitle;
-    });
-  }, [search, filter, allMaterials]);
+  const filtered = useMemo(() => [], []);
 
   // 카운트
-  const bibleCount = allMaterials.filter(m => m.category_type === 'bible').length;
-  const generalCount = allMaterials.filter(m => m.category_type === 'general').length;
-  const totalCount = allMaterials.length;
+  const bibleCount = 0;
+  const generalCount = 0;
+  const totalCount = 0;
 
   return (
     <main className="w-full max-w-[1200px] mx-auto py-8 min-h-[70vh]">

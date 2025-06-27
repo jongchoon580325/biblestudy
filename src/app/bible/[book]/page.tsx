@@ -1,7 +1,7 @@
 "use client";
 import { notFound, useRouter } from "next/navigation";
 import { File, Search, Eye, Edit, Download, Trash2 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 // 성경 66권 목록(간단 검증용)
 const BOOK_NAMES = [
@@ -31,6 +31,7 @@ export default function Page({ params }: any) {
     book: string;
     file: File;
     sync_status?: string;
+    content?: string;
   }
   const [materials, setMaterials] = useState<Material[]>([]);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -44,17 +45,26 @@ export default function Page({ params }: any) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  // BOOK_NAMES에 없는 경우 notFound 렌더링
+  // 페이지 마운트 시 localStorage에서 자료 불러오기
+  useEffect(() => {
+    const stored = localStorage.getItem(`bibleMaterials_${bookName}`);
+    if (stored) {
+      setMaterials(JSON.parse(stored));
+    }
+  }, [bookName]);
+
+  // BOOK_NAMES에 없는 경우 notFound 렌더링 (모든 Hook 호출 후 분기)
   if (!BOOK_NAMES.includes(bookName)) return notFound();
 
-  // 폼 제출 핸들러
+  // 자료 등록 핸들러
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title || !form.file) return;
     const file = form.file;
-    setMaterials((prev) => [
-      ...prev,
-      {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const content = typeof ev.target?.result === 'string' ? ev.target.result : '';
+      const newMaterial = {
         id: Date.now(),
         title: form.title,
         description: form.description,
@@ -65,10 +75,15 @@ export default function Page({ params }: any) {
         book: bookName,
         file,
         sync_status: 'synced',
-      },
-    ]);
-    setForm({ title: "", description: "", tags: "", file: null });
-    if (fileInputRef.current) fileInputRef.current.value = "";
+        content, // 파일 내용 저장
+      };
+      const next = [...materials, newMaterial];
+      setMaterials(next);
+      localStorage.setItem(`bibleMaterials_${bookName}`, JSON.stringify(next));
+      setForm({ title: "", description: "", tags: "", file: null });
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    };
+    reader.readAsDataURL(file); // 이미지/텍스트 등 모든 파일 지원
   };
 
   // 인라인 에디트 진입
@@ -78,7 +93,9 @@ export default function Page({ params }: any) {
   };
   // 인라인 에디트 저장
   const handleEditSave = (id: number) => {
-    setMaterials((prev) => prev.map((m) => m.id === id ? { ...m, title: editForm.title, description: editForm.description, tags: editForm.tags.split(",").map(t => t.trim()).filter(Boolean) } : m));
+    const next = materials.map((m) => m.id === id ? { ...m, title: editForm.title, description: editForm.description, tags: editForm.tags.split(",").map(t => t.trim()).filter(Boolean) } : m);
+    setMaterials(next);
+    localStorage.setItem(`bibleMaterials_${bookName}`, JSON.stringify(next));
     setEditId(null);
   };
   // 인라인 에디트 취소
@@ -101,7 +118,9 @@ export default function Page({ params }: any) {
   // 모달 확인
   const handleModalConfirm = () => {
     if (modal.type === "delete" && modal.mat) {
-      setMaterials((prev) => prev.filter((m) => m.id !== modal.mat!.id));
+      const next = materials.filter((m) => m.id !== modal.mat!.id);
+      setMaterials(next);
+      localStorage.setItem(`bibleMaterials_${bookName}`, JSON.stringify(next));
     } else if (modal.type === "download" && modal.mat) {
       // 실제 파일 다운로드
       const file = modal.mat.file;
@@ -121,6 +140,12 @@ export default function Page({ params }: any) {
   };
   // 모달 취소
   const handleModalCancel = () => setModal({ type: null });
+
+  // 미리보기 상세페이지 이동 핸들러
+  const handlePreview = (mat: Material) => {
+    // 상세 미리보기 라우트로 이동: /bible/[book]/preview/[materialId]
+    router.push(`/bible/${encodeURIComponent(bookName)}/preview/${mat.id}`);
+  };
 
   // 필터링된 자료목록
   const filteredMaterials = materials.filter((mat) => {
@@ -311,7 +336,17 @@ export default function Page({ params }: any) {
                         />
                       </td>
                       <td className="py-2 px-3 text-gray-500 dark:text-gray-400 whitespace-nowrap truncate max-w-[100px]" title={bookName}>{bookName}</td>
-                      <td className="py-2 px-3 text-gray-500 dark:text-gray-400 flex items-center justify-center"><Eye className="w-5 h-5 text-emerald-400" /></td>
+                      <td className="py-2 px-3 text-gray-500 dark:text-gray-400 flex items-center justify-center">
+                        {/* 미리보기 아이콘 클릭 시 상세페이지 이동 */}
+                        <Eye
+                          className="w-5 h-5 text-emerald-400 cursor-pointer hover:text-emerald-600 transition-colors"
+                          aria-label="미리보기"
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => handlePreview(mat)}
+                          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') handlePreview(mat); }}
+                        />
+                      </td>
                       <td className="py-2 px-3 text-gray-500 dark:text-gray-400 whitespace-nowrap truncate max-w-[180px]" title={mat.fileName}>{mat.fileName}</td>
                       <td className="py-2 px-3"><span className="text-xs text-green-700">동기화됨</span></td>
                       <td className="py-2 px-3 text-gray-400 flex gap-2">
@@ -323,7 +358,17 @@ export default function Page({ params }: any) {
                     <tr key={mat.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">
                       <td className="py-2 px-3 font-medium text-gray-700 dark:text-gray-200 whitespace-nowrap truncate max-w-[200px]" title={mat.title}>{mat.title}</td>
                       <td className="py-2 px-3 text-gray-500 dark:text-gray-400 whitespace-nowrap truncate max-w-[100px]" title={bookName}>{bookName}</td>
-                      <td className="py-2 px-3 text-gray-500 dark:text-gray-400 flex items-center justify-center"><Eye className="w-5 h-5 text-emerald-400" /></td>
+                      <td className="py-2 px-3 text-gray-500 dark:text-gray-400 flex items-center justify-center">
+                        {/* 미리보기 아이콘 클릭 시 상세페이지 이동 */}
+                        <Eye
+                          className="w-5 h-5 text-emerald-400 cursor-pointer hover:text-emerald-600 transition-colors"
+                          aria-label="미리보기"
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => handlePreview(mat)}
+                          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') handlePreview(mat); }}
+                        />
+                      </td>
                       <td className="py-2 px-3 text-gray-500 dark:text-gray-400 whitespace-nowrap truncate max-w-[180px]" title={mat.fileName}>{mat.fileName}</td>
                       <td className="py-2 px-3"><span className="text-xs text-green-700">동기화됨</span></td>
                       <td className="py-2 px-3 text-gray-400 flex gap-2">
