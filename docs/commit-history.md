@@ -1,5 +1,10 @@
 ### 2025-06-29
 
+7. **리팩토링: HybridStorageService로 자료 저장/조회/미리보기 로직 일원화 및 중복 제거** (3d64f2d)
+  - addMaterial, getAllMaterials, getMaterialsByBibleBook, deleteMaterial 등 CRUD 함수 HybridStorageService 클래스 static 메서드로 통합
+  - 성경/일반/전체자료실 및 프리뷰 페이지 모두 서비스 객체 패턴으로 일원화
+  - 자료 저장/조회/미리보기 로직 중복 제거 및 유지보수성 향상
+
 6. **수정: bibleHybridDB 인덱스별 자료 저장/조회 로직 개선 및 by-bible-book 인덱스 정상화** (caf3ccb)
   - getMaterialsByBibleBook 인덱스 기반 조회 함수 추가 및 적용
   - 성경자료실 자료 등록/조회 시 by-bible-book 인덱스 활용

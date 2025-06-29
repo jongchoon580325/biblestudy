@@ -69,7 +69,8 @@ export default function GeneralMaterialsPage() {
       bible_book: undefined,
     };
     await HybridStorageService.addMaterial(newMaterial);
-    setMaterials(await HybridStorageService.getAllMaterials());
+    const all = await HybridStorageService.getAllMaterials();
+    setMaterials(all.filter((mat) => mat.category_type === 'general'));
     setForm({ title: "", description: "", tags: "", file: null });
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
@@ -103,7 +104,8 @@ export default function GeneralMaterialsPage() {
   const handleModalConfirm = async () => {
     if (modal.type === "delete" && modal.mat) {
       await HybridStorageService.deleteMaterial(modal.mat.local_id);
-      setMaterials(await HybridStorageService.getAllMaterials());
+      const all = await HybridStorageService.getAllMaterials();
+      setMaterials(all.filter((mat) => mat.category_type === 'general'));
     } else if (modal.type === "download") {
       if (!modal.mat) return;
       // file_data가 없으면 빈 ArrayBuffer로 대체

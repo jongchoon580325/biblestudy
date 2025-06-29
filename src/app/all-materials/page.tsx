@@ -57,8 +57,27 @@ export default function AllMaterials() {
     }, 100);
   }
 
+  // 검색/필터링 적용
+  const filteredMaterials = materials.filter((mat) => {
+    if (filter !== 'all' && mat.category_type !== filter) return false;
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      mat.title.toLowerCase().includes(q) ||
+      (mat.description?.toLowerCase() ?? '').includes(q) ||
+      mat.tags.some((t) => t.toLowerCase().includes(q))
+    );
+  });
+
   return (
     <main className="w-full max-w-[1200px] mx-auto py-8 min-h-[70vh]">
+      {/* 상단: 타이틀/부연설명/구분선 */}
+      <div className="flex flex-col items-center text-center mb-8 w-full">
+        <h1 className="text-2xl font-bold text-white mb-2">통합자료실</h1>
+        <p className="text-base text-gray-400 mb-4">이곳은 성경자료실과 일반자료실의 모든 정보를 확인하는 곳입니다.</p>
+        {/* 구분선 */}
+        <div className="h-px bg-gradient-to-r from-transparent via-blue-400 to-transparent mb-8 w-full" />
+      </div>
       {/* 상단: 검색/필터/카운트 */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div className="flex gap-2 items-center">
@@ -82,14 +101,14 @@ export default function AllMaterials() {
             <option value="general">일반자료실</option>
           </select>
         </div>
-        <div className="flex gap-4 text-sm font-semibold text-gray-600">
-          <span>성경자료실: <span className="text-blue-500">{bibleCount}</span>개</span>
-          <span>일반자료실: <span className="text-emerald-500">{generalCount}</span>개</span>
-          <span>총합: <span className="text-indigo-500">{totalCount}</span>개</span>
+        <div className="flex gap-4 text-sm font-semibold">
+          <span className="text-[#b8bab9]">성경자료실: <span className="text-blue-500">{bibleCount}</span>개</span>
+          <span className="text-[#b8bab9]">일반자료실: <span className="text-emerald-500">{generalCount}</span>개</span>
+          <span className="text-[#b8bab9]">총합: <span className="text-indigo-500">{totalCount}</span>개</span>
         </div>
       </div>
       {/* 테이블 */}
-      <TableForm materials={materials} onPreview={setSelectedMaterial} onDownload={setDownloadTarget} />
+      <TableForm materials={filteredMaterials} onPreview={setSelectedMaterial} onDownload={setDownloadTarget} />
       {/* 미리보기 모달 */}
       {selectedMaterial && (
         <PreviewModal material={selectedMaterial} onClose={() => setSelectedMaterial(null)} />
