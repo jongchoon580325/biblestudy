@@ -2,7 +2,7 @@
 import { notFound, useRouter } from "next/navigation";
 import { File, Search, Eye, Edit, Download, Trash2 } from "lucide-react";
 import React, { useState, useEffect } from "react";
-import { addMaterial, getMaterialsByBibleBook } from "@/utils/storage-utils";
+import { HybridStorageService } from "@/utils/storage-utils";
 import { MaterialRecord } from "@/types/storage.types";
 
 // 성경 66권 목록(간단 검증용)
@@ -37,7 +37,7 @@ export default function Page({ params }: any) {
 
   // 마운트 시 IndexedDB에서 자료 불러오기 (성경자료실 전용)
   useEffect(() => {
-    getMaterialsByBibleBook(bookName).then((all) => {
+    HybridStorageService.getMaterialsByBibleBook(bookName).then((all) => {
       setMaterials(all);
     });
   }, [bookName]);
@@ -82,8 +82,8 @@ export default function Page({ params }: any) {
       last_sync: undefined,
       bible_book: form.bible_book,
     };
-    await addMaterial(newMaterial);
-    setMaterials(await getMaterialsByBibleBook(bookName));
+    await HybridStorageService.addMaterial(newMaterial);
+    setMaterials(await HybridStorageService.getMaterialsByBibleBook(bookName));
     setForm({ title: "", description: "", tags: "", file: null, bible_book: "" });
     if (fileInputRef.current) fileInputRef.current.value = "";
   };

@@ -3,7 +3,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { ArrowLeft, Download, Maximize2, Pencil } from "lucide-react";
 import Image from "next/image";
-import { openHybridDB } from "@/utils/storage-utils";
+import { HybridStorageService } from "@/utils/storage-utils";
 import { MaterialRecord } from "@/types/storage.types";
 
 export default function PreviewPage() {
@@ -20,49 +20,44 @@ export default function PreviewPage() {
   // IndexedDB에서 자료 조회
   useEffect(() => {
     if (!materialId) return;
-    openHybridDB().then(db => {
-      const tx = db.transaction("materials", "readonly");
-      const req = tx.objectStore("materials").get(materialId);
-      req.onsuccess = () => {
-        const found = req.result as MaterialRecord | undefined;
-        if (found) {
-          setMaterial(found);
-          // 파일 확장자별로 content 추출
-          const ext = found.file_name.split('.').pop()?.toLowerCase() || '';
-          if (["md","markdown","txt","html","csv"].includes(ext)) {
-            // 텍스트 파일: file_data → text 변환
-            if (found.file_data) {
-              const reader = new FileReader();
-              reader.onload = () => setContent(reader.result as string);
-              reader.readAsText(new Blob([found.file_data], { type: found.file_type }));
-            } else {
-              setContent("");
-            }
-          } else if (["jpg","jpeg","png","gif","bmp","webp"].includes(ext)) {
-            // 이미지: file_data → dataURL 변환
-            if (found.file_data) {
-              const reader = new FileReader();
-              reader.onload = () => setContent(reader.result as string);
-              reader.readAsDataURL(new Blob([found.file_data], { type: found.file_type }));
-            } else {
-              setContent("");
-            }
-          } else if (ext === "pdf") {
-            // PDF: Blob URL
-            if (found.file_data) {
-              const blob = new Blob([found.file_data], { type: found.file_type });
-              setContent(URL.createObjectURL(blob));
-            } else {
-              setContent("");
-            }
+    HybridStorageService.getAllMaterials().then((all) => {
+      const found = all.find((mat) => mat.local_id === materialId);
+      if (found) {
+        setMaterial(found);
+        // 파일 확장자별로 content 추출
+        const ext = found.file_name.split('.').pop()?.toLowerCase() || '';
+        if (["md","markdown","txt","html","csv"].includes(ext)) {
+          // 텍스트 파일: file_data → text 변환
+          if (found.file_data) {
+            const reader = new FileReader();
+            reader.onload = () => setContent(reader.result as string);
+            reader.readAsText(new Blob([found.file_data], { type: found.file_type }));
+          } else {
+            setContent("");
+          }
+        } else if (["jpg","jpeg","png","gif","bmp","webp"].includes(ext)) {
+          // 이미지: file_data → dataURL 변환
+          if (found.file_data) {
+            const reader = new FileReader();
+            reader.onload = () => setContent(reader.result as string);
+            reader.readAsDataURL(new Blob([found.file_data], { type: found.file_type }));
+          } else {
+            setContent("");
+          }
+        } else if (ext === "pdf") {
+          // PDF: Blob URL
+          if (found.file_data) {
+            const blob = new Blob([found.file_data], { type: found.file_type });
+            setContent(URL.createObjectURL(blob));
           } else {
             setContent("");
           }
         } else {
-          setMaterial(null);
+          setContent("");
         }
-      };
-      req.onerror = () => setMaterial(null);
+      } else {
+        setMaterial(null);
+      }
     });
   }, [materialId]);
 

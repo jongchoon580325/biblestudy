@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 import { File as FileIcon, Search, Eye, Edit, Download, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { addMaterial, getAllMaterials, deleteMaterial } from "@/utils/storage-utils";
+import { HybridStorageService } from "@/utils/storage-utils";
 import { MaterialRecord } from "@/types/storage.types";
 
 export default function GeneralMaterialsPage() {
@@ -26,7 +26,7 @@ export default function GeneralMaterialsPage() {
 
   // 마운트 시 IndexedDB에서 자료 불러오기 (일반자료실 전용)
   useEffect(() => {
-    getAllMaterials().then((all) => {
+    HybridStorageService.getAllMaterials().then((all) => {
       setMaterials(all.filter((mat) => mat.category_type === 'general'));
     });
   }, []);
@@ -68,8 +68,8 @@ export default function GeneralMaterialsPage() {
       last_sync: undefined,
       bible_book: undefined,
     };
-    await addMaterial(newMaterial);
-    setMaterials(await getAllMaterials());
+    await HybridStorageService.addMaterial(newMaterial);
+    setMaterials(await HybridStorageService.getAllMaterials());
     setForm({ title: "", description: "", tags: "", file: null });
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
@@ -102,8 +102,8 @@ export default function GeneralMaterialsPage() {
   // 모달 확인
   const handleModalConfirm = async () => {
     if (modal.type === "delete" && modal.mat) {
-      await deleteMaterial(modal.mat.local_id);
-      setMaterials(await getAllMaterials());
+      await HybridStorageService.deleteMaterial(modal.mat.local_id);
+      setMaterials(await HybridStorageService.getAllMaterials());
     } else if (modal.type === "download") {
       if (!modal.mat) return;
       // file_data가 없으면 빈 ArrayBuffer로 대체

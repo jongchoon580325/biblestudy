@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import TableForm from '../../components/tableform';
 import { Search } from 'lucide-react';
-import { getAllMaterials } from "@/utils/storage-utils";
+import { HybridStorageService } from "@/utils/storage-utils";
 import { Material } from "@/components/inputtableform";
 import PreviewContent from '../../components/preview-content';
 
@@ -36,7 +36,7 @@ export default function AllMaterials() {
 
   // 마운트 시 IndexedDB에서 전체 자료 불러오기
   useEffect(() => {
-    getAllMaterials().then((all) => {
+    HybridStorageService.getAllMaterials().then((all) => {
       setMaterials(all.map(mat => ({ ...mat, is_editable: false })));
     });
   }, []);
