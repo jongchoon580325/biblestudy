@@ -81,4 +81,16 @@ export const localStorageUtil = {
   remove(key: string) {
     localStorage.removeItem(key);
   }
-}; 
+};
+
+// 특정 성경책 자료만 조회 (by-bible-book 인덱스 활용)
+export async function getMaterialsByBibleBook(bookName: string): Promise<MaterialRecord[]> {
+  const db = await openHybridDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(MATERIALS_STORE, 'readonly');
+    const idx = tx.objectStore(MATERIALS_STORE).index('by-bible-book');
+    const req = idx.getAll(bookName);
+    req.onsuccess = () => resolve(req.result as MaterialRecord[]);
+    req.onerror = () => reject(req.error);
+  });
+} 

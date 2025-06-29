@@ -27,11 +27,12 @@ export default function AllMaterials() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all'|'bible'|'general'>('all');
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
+  const [downloadTarget, setDownloadTarget] = useState<Material | null>(null);
 
-  // 카운트
-  const bibleCount = 0;
-  const generalCount = 0;
-  const totalCount = 0;
+  // 카운트 계산
+  const bibleCount = materials.filter(m => m.category_type === 'bible').length;
+  const generalCount = materials.filter(m => m.category_type === 'general').length;
+  const totalCount = materials.length;
 
   // 마운트 시 IndexedDB에서 전체 자료 불러오기
   useEffect(() => {
@@ -39,6 +40,22 @@ export default function AllMaterials() {
       setMaterials(all.map(mat => ({ ...mat, is_editable: false })));
     });
   }, []);
+
+  // 파일 다운로드 실행
+  function handleDownload(material: Material) {
+    if (!material.file_data) return;
+    const blob = new Blob([material.file_data], { type: material.file_type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = material.file_name;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+  }
 
   return (
     <main className="w-full max-w-[1200px] mx-auto py-8 min-h-[70vh]">
@@ -72,10 +89,25 @@ export default function AllMaterials() {
         </div>
       </div>
       {/* 테이블 */}
-      <TableForm materials={materials} onPreview={setSelectedMaterial} />
+      <TableForm materials={materials} onPreview={setSelectedMaterial} onDownload={setDownloadTarget} />
       {/* 미리보기 모달 */}
       {selectedMaterial && (
         <PreviewModal material={selectedMaterial} onClose={() => setSelectedMaterial(null)} />
+      )}
+      {/* 다운로드 확인 모달 */}
+      {downloadTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-lg p-6 min-w-[320px] max-w-md w-full flex flex-col items-center">
+            <div className="text-lg font-bold mb-4 text-center">파일 다운로드</div>
+            <div className="mb-6 text-center text-gray-800 dark:text-gray-200">
+              <span className="font-semibold">{downloadTarget.file_name}</span> 파일을 다운로드하시겠습니까?
+            </div>
+            <div className="flex gap-4">
+              <button onClick={() => { handleDownload(downloadTarget); setDownloadTarget(null); }} className="px-4 py-2 bg-emerald-500 text-white rounded">확인</button>
+              <button onClick={() => setDownloadTarget(null)} className="px-4 py-2 bg-gray-400 text-white rounded">취소</button>
+            </div>
+          </div>
+        </div>
       )}
     </main>
   );
