@@ -49,24 +49,38 @@ export async function syncPendingMaterials() {
   const pendings = all.filter(m => m.sync_status === 'pending' || m.sync_status === 'error');
   for (const mat of pendings) {
     try {
-      // 2. Supabase 업로드/수정/삭제 (여기선 업로드 예시)
+      // 1. 파일이 있으면 Supabase Storage에 업로드
+      let fileUrl = mat.file_url;
+      if (mat.file_data && mat.file_name) {
+        const filePath = `${mat.category_type}/${mat.local_id}_${mat.file_name}`;
+        // 이미 업로드된 경우 skip
+        if (!fileUrl) {
+          const { error: uploadError } = await supabase.storage.from('materials').upload(filePath, new Blob([mat.file_data], { type: mat.file_type }), { upsert: true });
+          if (uploadError && !(uploadError.message && uploadError.message.includes('Duplicate'))) throw uploadError;
+          // 업로드 성공 또는 이미 존재(409) 시 publicUrl 획득
+          const { data: urlData } = supabase.storage.from('materials').getPublicUrl(filePath);
+          fileUrl = urlData.publicUrl;
+        }
+      }
+      // 2. DB upsert (local_id 기준, onConflict)
       const { error } = await supabase.from('materials').upsert([
         {
-          // 필요한 필드만 전송
+          local_id: mat.local_id, // 고유값 반드시 포함
           title: mat.title,
           description: mat.description,
           category_type: mat.category_type,
           file_name: mat.file_name,
           file_size: mat.file_size,
           file_type: mat.file_type,
+          file_url: fileUrl,
           tags: mat.tags,
           metadata: mat.metadata,
           created_at: mat.created_at,
           updated_at: new Date(),
           is_deleted: mat.is_deleted,
-          // ...etc
+          bible_book: mat.bible_book,
         }
-      ]);
+      ], { onConflict: 'local_id' });
       if (error) {
         if (error.message?.includes('JWT') || error.message?.includes('auth')) {
           console.error('[SYNC][FAIL][AUTH]', mat.local_id, error.message || error);

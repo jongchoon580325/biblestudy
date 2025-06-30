@@ -24,37 +24,35 @@ export default function PreviewPage() {
       const found = all.find((mat) => mat.local_id === materialId);
       if (found) {
         setMaterial(found);
-        // 파일 확장자별로 content 추출
         const ext = found.file_name.split('.').pop()?.toLowerCase() || '';
         if (["md","markdown","txt","html","csv"].includes(ext)) {
-          // 텍스트 파일: file_data → text 변환
           if (found.file_data) {
             const reader = new FileReader();
             reader.onload = () => setContent(reader.result as string);
             reader.readAsText(new Blob([found.file_data], { type: found.file_type }));
           } else {
-            setContent("");
+            setContent("[파일 데이터 없음: 미리보기 불가]");
           }
         } else if (["jpg","jpeg","png","gif","bmp","webp"].includes(ext)) {
-          // 이미지: file_data → dataURL 변환
           if (found.file_data) {
             const reader = new FileReader();
             reader.onload = () => setContent(reader.result as string);
             reader.readAsDataURL(new Blob([found.file_data], { type: found.file_type }));
           } else {
-            setContent("");
+            setContent("[이미지 데이터 없음: 미리보기 불가]");
           }
         } else if (ext === "pdf") {
-          // PDF: Blob URL
           if (found.file_data) {
             const blob = new Blob([found.file_data], { type: found.file_type });
             setContent(URL.createObjectURL(blob));
           } else {
-            setContent("");
+            setContent("[PDF 데이터 없음: 미리보기 불가]");
           }
         } else {
-          setContent("");
+          setContent("[미리보기 불가: 지원하지 않는 파일 형식]");
         }
+        // 디버깅 로그
+        console.log('[미리보기] ext:', ext, 'file_data:', !!found.file_data, 'content:', content);
       } else {
         setMaterial(null);
       }
@@ -180,7 +178,7 @@ export default function PreviewPage() {
         ) : (
           // 미리보기(랜더링)만 보여줌
           <div className="w-full h-[640px] min-h-[640px] bg-gray-800 text-white border border-gray-700 rounded p-4 overflow-auto text-sm">
-            {renderPreview(ext, content)}
+            {content ? renderPreview(ext, content) : <div className="text-center text-gray-400">[미리보기 데이터 없음]</div>}
           </div>
         )}
       </div>

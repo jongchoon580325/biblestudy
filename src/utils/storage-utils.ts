@@ -161,4 +161,14 @@ export const SyncLogAPI = {
     if (error) throw error;
     return data?.[0];
   }
-}; 
+};
+
+// Supabase Storage 업로드 유틸
+export async function uploadToStorage(filePath: string, fileData: ArrayBuffer, fileType: string): Promise<string | null> {
+  // 파일 업로드(중복시 upsert)
+  const { error: uploadError } = await supabase.storage.from('materials').upload(filePath, new Blob([fileData], { type: fileType }), { upsert: true });
+  if (uploadError && !(uploadError.message && uploadError.message.includes('Duplicate'))) throw uploadError;
+  // 업로드 성공 또는 이미 존재(409) 시 publicUrl 반환
+  const { data: urlData } = supabase.storage.from('materials').getPublicUrl(filePath);
+  return urlData.publicUrl || null;
+} 
