@@ -1,5 +1,9 @@
 ### 2025-06-29
 
+8. **스타일: 전체자료실 카운트 안내문구 라벨 컬러 #b8bab9로 변경** (93fc94a)
+  - 전체자료실 상단 카운트 안내문구에서 숫자를 제외한 라벨 텍스트 컬러를 #b8bab9로 변경
+  - 숫자는 기존 파란/초록/보라 컬러 유지, 시각적 구분성 향상
+
 7. **리팩토링: HybridStorageService로 자료 저장/조회/미리보기 로직 일원화 및 중복 제거** (3d64f2d)
   - addMaterial, getAllMaterials, getMaterialsByBibleBook, deleteMaterial 등 CRUD 함수 HybridStorageService 클래스 static 메서드로 통합
   - 성경/일반/전체자료실 및 프리뷰 페이지 모두 서비스 객체 패턴으로 일원화

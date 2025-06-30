@@ -1,5 +1,11 @@
 // IndexedDB/LocalStorage 유틸리티 (하이브리드 저장소)
-import { MaterialRecord } from '../types/storage.types';
+import { MaterialRecord, SyncQueueRecord } from '../types/storage.types';
+
+// Supabase 클라이언트 인스턴스 (환경변수 또는 직접 할당)
+import { createClient } from '@supabase/supabase-js';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://gqfryirmszmxpgczhgcp.supabase.co";
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxZnJ5aXJtc3pteHBnY3poZ2NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEwNjQzNjksImV4cCI6MjA2NjY0MDM2OX0.lIgXaxc7dKyKoMlEzQkFbttpNUb2rDaUfcF1H21dxlE";
+export const supabase = createClient(supabaseUrl, supabaseKey);
 
 const DB_NAME = 'bibleHybridDB';
 const DB_VERSION = 1;
@@ -80,6 +86,28 @@ export class HybridStorageService {
       req.onerror = () => reject(req.error);
     });
   }
+
+  // 동기화 큐에서 pending/processing 상태 작업 조회
+  static async getPendingSyncQueueItems(): Promise<SyncQueueRecord[]> {
+    const db = await this.openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('sync_queue', 'readonly');
+      const store = tx.objectStore('sync_queue');
+      const idx = store.index('by-status');
+      const pendingReq = idx.getAll('pending');
+      const processingReq = idx.getAll('processing');
+      const result: SyncQueueRecord[] = [];
+      pendingReq.onsuccess = () => {
+        result.push(...pendingReq.result);
+        processingReq.onsuccess = () => {
+          result.push(...processingReq.result);
+          resolve(result);
+        };
+        processingReq.onerror = () => reject(processingReq.error);
+      };
+      pendingReq.onerror = () => reject(pendingReq.error);
+    });
+  }
 }
 
 // LocalStorage 유틸
@@ -94,5 +122,43 @@ export const localStorageUtil = {
   },
   remove(key: string) {
     localStorage.removeItem(key);
+  }
+};
+
+// 카테고리 API
+export const CategoryAPI = {
+  async getAll() {
+    const { data, error } = await supabase.from('categories').select('*').order('created_at', { ascending: true });
+    if (error) throw error;
+    return data;
+  },
+  async create(category: import('../types/storage.types').Category) {
+    const { data, error } = await supabase.from('categories').insert([category]).select();
+    if (error) throw error;
+    return data?.[0];
+  },
+  async update(id: string, patch: Partial<import('../types/storage.types').Category>) {
+    const { data, error } = await supabase.from('categories').update(patch).eq('id', id).select();
+    if (error) throw error;
+    return data?.[0];
+  },
+  async remove(id: string) {
+    const { error } = await supabase.from('categories').delete().eq('id', id);
+    if (error) throw error;
+    return true;
+  }
+};
+
+// 동기화 로그 API
+export const SyncLogAPI = {
+  async getByMaterialId(material_id: string) {
+    const { data, error } = await supabase.from('sync_logs').select('*').eq('material_id', material_id).order('created_at', { ascending: true });
+    if (error) throw error;
+    return data;
+  },
+  async create(log: import('../types/storage.types').SyncLog) {
+    const { data, error } = await supabase.from('sync_logs').insert([log]).select();
+    if (error) throw error;
+    return data?.[0];
   }
 }; 

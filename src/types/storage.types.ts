@@ -39,4 +39,24 @@ export interface AppMetadata {
   last_sync: Date;
   sync_version: number;
   user_preferences: Record<string, unknown>;
+}
+
+// 카테고리 타입
+export interface Category {
+  id: string;
+  name: string;
+  type: string;
+  parent_id?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// 동기화 로그 타입
+export interface SyncLog {
+  id: string;
+  material_id: string;
+  action: string;
+  status: string;
+  message?: string | null;
+  created_at: string;
 } 
