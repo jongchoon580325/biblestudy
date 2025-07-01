@@ -1,0 +1,160 @@
+import React from 'react';
+import { 
+  RefreshCw, 
+  Download, 
+  Upload, 
+  Database, 
+  Book, 
+  Grid3X3, 
+  AlertTriangle 
+} from 'lucide-react';
+
+const DataManagementLayout: React.FC = () => {
+  return (
+    <div className="min-h-screen bg-black text-white">
+      <div className="max-w-4xl mx-auto px-4 py-8 md:px-8">
+        {/* 타이틀 섹션 */}
+        <div className="text-center mb-12">
+          <h1 className="text-3xl md:text-4xl font-bold mb-4">
+            데이터 관리 시스템
+          </h1>
+          <p className="text-gray-400 text-lg mb-8">
+            카테고리 및 데이터 통합 관리 플랫폼
+          </p>
+          <div className="w-full h-px bg-gray-700"></div>
+        </div>
+
+        {/* 메인 콘텐츠 영역 */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* 좌측 영역 (3 columns) - 카테고리 관리 */}
+          <div className="lg:col-span-1">
+            <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
+              <div className="flex items-center mb-6">
+                <Grid3X3 className="w-6 h-6 mr-3 text-blue-400" />
+                <h2 className="text-xl font-semibold">카테고리 관리</h2>
+              </div>
+              <div className="bg-gray-800 rounded-lg p-6 text-center">
+                <div className="text-gray-400 text-base">
+                  차후 구현 예정
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 우측 영역 (6 columns) - 데이터 관리 */}
+          <div className="lg:col-span-2">
+            <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
+              <div className="flex items-center mb-6">
+                <Database className="w-6 h-6 mr-3 text-green-400" />
+                <h2 className="text-xl font-semibold">데이터 관리</h2>
+              </div>
+
+              <div className="space-y-6">
+                {/* 첫 번째 행 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* 자료동기화 */}
+                  <div className="bg-gray-800 rounded-lg p-4">
+                    <h3 className="text-sm font-medium text-gray-300 mb-3 flex items-center">
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      자료동기화
+                    </h3>
+                    <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors duration-200 flex items-center justify-center">
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      동기화 실행
+                    </button>
+                  </div>
+
+                  {/* 카테고리항목 */}
+                  <div className="bg-gray-800 rounded-lg p-4">
+                    <h3 className="text-sm font-medium text-gray-300 mb-3 flex items-center">
+                      <Grid3X3 className="w-4 h-4 mr-2" />
+                      카테고리항목
+                    </h3>
+                    <div className="flex gap-2">
+                      <button className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded-md transition-colors duration-200 flex items-center justify-center text-sm">
+                        <Download className="w-4 h-4 mr-1" />
+                        내보내기
+                      </button>
+                      <button className="flex-1 bg-orange-600 hover:bg-orange-700 text-white py-2 px-3 rounded-md transition-colors duration-200 flex items-center justify-center text-sm">
+                        <Upload className="w-4 h-4 mr-1" />
+                        가져오기
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 두 번째 행 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* 성경데이터 */}
+                  <div className="bg-gray-800 rounded-lg p-4">
+                    <h3 className="text-sm font-medium text-gray-300 mb-3 flex items-center">
+                      <Book className="w-4 h-4 mr-2" />
+                      성경데이터
+                    </h3>
+                    <div className="flex gap-2">
+                      <button className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded-md transition-colors duration-200 flex items-center justify-center text-sm">
+                        <Download className="w-4 h-4 mr-1" />
+                        내보내기
+                      </button>
+                      <button className="flex-1 bg-orange-600 hover:bg-orange-700 text-white py-2 px-3 rounded-md transition-colors duration-200 flex items-center justify-center text-sm">
+                        <Upload className="w-4 h-4 mr-1" />
+                        가져오기
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 일반데이터 */}
+                  <div className="bg-gray-800 rounded-lg p-4">
+                    <h3 className="text-sm font-medium text-gray-300 mb-3 flex items-center">
+                      <Database className="w-4 h-4 mr-2" />
+                      일반데이터
+                    </h3>
+                    <div className="flex gap-2">
+                      <button className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded-md transition-colors duration-200 flex items-center justify-center text-sm">
+                        <Download className="w-4 h-4 mr-1" />
+                        내보내기
+                      </button>
+                      <button className="flex-1 bg-orange-600 hover:bg-orange-700 text-white py-2 px-3 rounded-md transition-colors duration-200 flex items-center justify-center text-sm">
+                        <Upload className="w-4 h-4 mr-1" />
+                        가져오기
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 세 번째 행 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* 데이터 초기화 */}
+                  <div className="bg-gray-800 rounded-lg p-4">
+                    <h3 className="text-sm font-medium text-gray-300 mb-3 flex items-center">
+                      <AlertTriangle className="w-4 h-4 mr-2" />
+                      데이터 초기화
+                    </h3>
+                    <button className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-md transition-colors duration-200 flex items-center justify-center">
+                      <AlertTriangle className="w-4 h-4 mr-2" />
+                      초기화
+                    </button>
+                  </div>
+
+                  {/* 카테고리 초기화 */}
+                  <div className="bg-gray-800 rounded-lg p-4">
+                    <h3 className="text-sm font-medium text-gray-300 mb-3 flex items-center">
+                      <AlertTriangle className="w-4 h-4 mr-2" />
+                      카테고리 초기화
+                    </h3>
+                    <button className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-md transition-colors duration-200 flex items-center justify-center">
+                      <AlertTriangle className="w-4 h-4 mr-2" />
+                      초기화
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default DataManagementLayout;

@@ -108,6 +108,39 @@ export class HybridStorageService {
       pendingReq.onerror = () => reject(pendingReq.error);
     });
   }
+
+  // IndexedDB 전체 자료 삭제 (materials)
+  static async clearAllMaterials(): Promise<void> {
+    const db = await this.openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(MATERIALS_STORE, 'readwrite');
+      tx.objectStore(MATERIALS_STORE).clear();
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  // 동기화 큐 전체 삭제
+  static async clearAllSyncQueue(): Promise<void> {
+    const db = await this.openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(SYNC_QUEUE_STORE, 'readwrite');
+      tx.objectStore(SYNC_QUEUE_STORE).clear();
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  // 앱 메타데이터 전체 삭제
+  static async clearAllAppMetadata(): Promise<void> {
+    const db = await this.openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(APP_METADATA_STORE, 'readwrite');
+      tx.objectStore(APP_METADATA_STORE).clear();
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
 }
 
 // LocalStorage 유틸

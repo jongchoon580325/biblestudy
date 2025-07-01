@@ -2,20 +2,18 @@
 
 ### 2024-06-30
 
+10. **수정: supabase 이중등록 방지 및 storage 업로드/빌드 오류 수정** (dac15dc)
+  - supabase materials 테이블 이중 등록(onConflict) 완전 방지
+    - local_id UNIQUE 컬럼 기반 upsert, 타입 오류 수정
+  - 파일 업로드 시 storage bucket(materials)에 실제 데이터 저장 및 file_url 연동
+    - 업로드 유틸 함수 추가, publicUrl 저장, 중복 업로드 예외 처리
+  - 빌드/ESLint/타입 에러 전면 해결 및 production build 정상화
+    - StorageError 타입, onConflict 옵션, 미사용 변수 등 일괄 수정
+
 9. **기능: supabase 연동정상-클라이언트 핫리로드정상-인증관련정상** (5420ef9)
   - Supabase 클라이언트 싱글턴화
     - 인증 경고 제거
     - 동기화/핫리로드 정상화
-
-### 2024-06-07
-
-28. **기능: supabase 연동정상-클라이언트 핫리로드정상-인증관련정상** (5420ef9)
-  - Supabase 클라이언트 싱글턴화
-    - 인증 경고 제거
-    - 동기화/핫리로드 정상화
-
-## 28. 2024-06-07  feat: supabase 연동정상-클라이언트 핫리로드정상-인증관련정상 (5420ef9)
-- Supabase 클라이언트 싱글턴화, 인증 경고 제거, 동기화/핫리로드 정상화
 
 ### 2025-06-29
 
