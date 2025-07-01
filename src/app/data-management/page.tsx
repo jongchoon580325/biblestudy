@@ -11,6 +11,9 @@ import {
 } from 'lucide-react';
 import { HybridStorageService, supabase } from '@/utils/storage-utils';
 import JSZip from 'jszip';
+import { syncPendingMaterials } from '@/utils/sync-engine';
+import { Category, CategoryType } from '@/types/category.types';
+import { CategoryService } from '@/utils/category-service';
 
 // 데이터관리 페이지 본문 UI
 export default function DataManagement() {
@@ -19,6 +22,16 @@ export default function DataManagement() {
   const [resetLoading, setResetLoading] = useState(false);
   const [resetResult, setResetResult] = useState<string|null>(null);
   const [exportModal, setExportModal] = useState<null | 'bible' | 'general'>(null);
+  // 동기화 버튼 상태
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [syncResult, setSyncResult] = useState<string|null>(null);
+  // --- 카테고리 관리 상태 ---
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [catLoading, setCatLoading] = useState(false);
+  const [catModal, setCatModal] = useState<null | { type: 'add'|'edit'|'delete'|'clear', target?: Category, parentId?: string }> (null);
+  const [catInput, setCatInput] = useState('');
+  const [catType, setCatType] = useState<CategoryType>('group');
+  const [expanded, setExpanded] = useState<string[]>([]); // 펼침 그룹 id 목록
 
   // 데이터 초기화 실행
   async function handleReset() {
@@ -118,6 +131,84 @@ export default function DataManagement() {
     }
   }
 
+  // 수동 동기화 실행 (Supabase 동기화 실행 버튼)
+  async function handleManualSync() {
+    setSyncLoading(true);
+    setSyncResult(null);
+    try {
+      await syncPendingMaterials();
+      setSyncResult('동기화가 완료되었습니다.');
+    } catch (e) {
+      let msg = '알 수 없는 오류';
+      if (e instanceof Error) msg = e.message;
+      setSyncResult('동기화 실패: ' + msg);
+    } finally {
+      setSyncLoading(false);
+      // 3초 후 메시지 자동 사라짐
+      setTimeout(() => setSyncResult(null), 3000);
+    }
+  }
+
+  // 카테고리 목록 fetch
+  async function fetchCategories() {
+    setCatLoading(true);
+    const all = await CategoryService.getAll();
+    setCategories(all);
+    setCatLoading(false);
+  }
+  React.useEffect(() => { fetchCategories(); }, []);
+  // 그룹/하위카테고리 분리
+  const groupCategories = categories.filter(cat => cat.type === 'group').sort((a, b) => a.order - b.order);
+  const getSubCategories = (groupId: string) =>
+    categories.filter(cat => cat.type === 'item' && cat.parentId === groupId).sort((a, b) => a.order - b.order);
+  // 추가/수정/삭제/초기화 핸들러
+  async function handleAddCategory() {
+    const name = catInput.trim();
+    if (!name) return;
+    // 중복 방지
+    if (categories.some(cat => cat.name === name && cat.type === catType && (catType === 'group' || cat.parentId === catModal?.parentId))) return;
+    const now = new Date().toISOString();
+    const newCat: Category = {
+      id: crypto.randomUUID(),
+      name,
+      type: catType,
+      parentId: catType === 'item' ? catModal?.parentId : undefined,
+      order: (catType === 'group'
+        ? groupCategories.length
+        : getSubCategories(catModal?.parentId || '').length) + 1,
+      created_at: now,
+      updated_at: now,
+      sync_status: 'pending',
+    };
+    await CategoryService.add(newCat);
+    setCatModal(null); setCatInput('');
+    fetchCategories();
+  }
+  async function handleEditCategory() {
+    if (!catInput.trim() || !catModal?.target) return;
+    const target = catModal.target;
+    if (!target) return;
+    if (categories.some(cat => cat.name === catInput.trim() && cat.id !== target.id && cat.type === target.type && (target.type === 'group' || cat.parentId === target.parentId))) return;
+    await CategoryService.update(target.id, { name: catInput.trim(), updated_at: new Date().toISOString(), sync_status: 'pending' });
+    setCatModal(null); setCatInput('');
+    fetchCategories();
+  }
+  async function handleDeleteCategory() {
+    if (!catModal?.target) return;
+    await CategoryService.delete(catModal.target.id);
+    setCatModal(null);
+    fetchCategories();
+  }
+  async function handleClearCategories() {
+    await CategoryService.clear();
+    setCatModal(null);
+    fetchCategories();
+  }
+  // Accordion 펼침/접힘
+  function toggleExpand(id: string) {
+    setExpanded(expanded => expanded.includes(id) ? expanded.filter(e => e !== id) : [...expanded, id]);
+  }
+
   return (
     <div className="min-h-screen bg-black text-white">
       <div className="max-w-4xl mx-auto px-4 py-8 md:px-8">
@@ -138,10 +229,47 @@ export default function DataManagement() {
                 <Grid3X3 className="w-6 h-6 mr-3 text-blue-400" />
                 <h2 className="text-xl font-semibold">카테고리 관리</h2>
               </div>
-              <div className="bg-gray-800 rounded-lg p-6 text-center">
-                <div className="text-gray-400 text-base">
-                  차후 구현 예정
+              <div className="bg-gray-800 rounded-lg p-4">
+                <div className="flex justify-between mb-3">
+                  <button className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs" onClick={() => { setCatType('group'); setCatModal({ type: 'add' }); setCatInput(''); }}>+ 그룹 추가</button>
                 </div>
+                {catLoading ? (
+                  <div className="text-gray-400 text-sm py-8 text-center">로딩 중...</div>
+                ) : groupCategories.length === 0 ? (
+                  <div className="text-gray-400 text-sm py-8 text-center">카테고리가 없습니다.</div>
+                ) : (
+                  <ul>
+                    {groupCategories.map(group => (
+                      <li key={group.id} className="mb-2">
+                        <div className="flex items-center justify-between bg-gray-700 rounded px-2 py-1">
+                          <div className="flex items-center cursor-pointer" onClick={() => toggleExpand(group.id)}>
+                            <span className="mr-2">{expanded.includes(group.id) ? '▼' : '▶'}</span>
+                            <span className="font-semibold text-white text-[10px]">{group.name}</span>
+                          </div>
+                          <div className="flex gap-1">
+                            <button className="text-[10px] text-blue-400 hover:underline" onClick={() => { setCatType('item'); setCatModal({ type: 'add', parentId: group.id }); setCatInput(''); }}>하위 추가</button>
+                            <button className="text-[10px] text-yellow-400 hover:underline" onClick={() => { setCatModal({ type: 'edit', target: group }); setCatInput(group.name); }}>수정</button>
+                            <button className="text-[10px] text-red-400 hover:underline" onClick={() => setCatModal({ type: 'delete', target: group })}>삭제</button>
+                          </div>
+                        </div>
+                        {/* 하위카테고리 */}
+                        {expanded.includes(group.id) && (
+                          <ul className="ml-6 mt-1">
+                            {getSubCategories(group.id).map(item => (
+                              <li key={item.id} className="flex items-center justify-between bg-gray-600 rounded px-2 py-1 mb-1">
+                                <span className="text-white text-[10px]">{item.name}</span>
+                                <div className="flex gap-1">
+                                  <button className="text-[10px] text-yellow-400 hover:underline" onClick={() => { setCatModal({ type: 'edit', target: item }); setCatInput(item.name); }}>수정</button>
+                                  <button className="text-[10px] text-red-400 hover:underline" onClick={() => setCatModal({ type: 'delete', target: item })}>삭제</button>
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>
           </div>
@@ -163,10 +291,18 @@ export default function DataManagement() {
                       <RefreshCw className="w-4 h-4 mr-2" />
                       자료동기화
                     </h3>
-                    <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors duration-200 flex items-center justify-center text-sm lg:whitespace-nowrap lg:min-w-0 lg:overflow-hidden lg:text-ellipsis">
+                    <button
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors duration-200 flex items-center justify-center text-sm lg:whitespace-nowrap lg:min-w-0 lg:overflow-hidden lg:text-ellipsis disabled:opacity-60"
+                      onClick={handleManualSync}
+                      disabled={syncLoading}
+                    >
                       <RefreshCw className="w-4 h-4 mr-2" />
-                      동기화 실행
+                      {syncLoading ? '동기화 중...' : 'Supabase 동기화 실행'}
                     </button>
+                    {/* 동기화 결과 메시지 */}
+                    {syncResult && (
+                      <div className="mt-4 text-center text-sm text-emerald-400 whitespace-nowrap overflow-hidden text-ellipsis max-w-full">{syncResult}</div>
+                    )}
                   </div>
 
                   {/* 카테고리항목 */}
@@ -310,6 +446,75 @@ export default function DataManagement() {
                   className="px-4 py-2 bg-gray-400 text-white rounded"
                 >취소</button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* 카테고리 추가/수정/삭제/초기화 모달 */}
+        {catModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div className="bg-white dark:bg-gray-900 flex flex-col items-center shadow-lg p-4 border border-white rounded-[20px]" style={{ minWidth: '160px', maxWidth: '200px', width: '50%' }}>
+              {catModal.type === 'add' && (
+                <form
+                  onSubmit={e => { e.preventDefault(); handleAddCategory(); }}
+                  className="w-full flex flex-col items-center"
+                >
+                  <div className="text-lg font-bold mb-4 text-center text-blue-600">{catType === 'group' ? '그룹 추가' : '하위카테고리 추가'}</div>
+                  <input
+                    autoFocus
+                    className="w-full border rounded px-3 py-2 mb-4 text-white bg-black focus:outline-blue-500"
+                    placeholder="카테고리명"
+                    value={catInput}
+                    onChange={e => setCatInput(e.target.value)}
+                    disabled={false}
+                    readOnly={false}
+                    style={{ pointerEvents: 'auto' }}
+                  />
+                  <div className="flex gap-4">
+                    <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">추가</button>
+                    <button type="button" onClick={() => setCatModal(null)} className="px-4 py-2 bg-gray-400 text-white rounded">취소</button>
+                  </div>
+                </form>
+              )}
+              {catModal.type === 'edit' && (
+                <>
+                  <div className="text-lg font-bold mb-4 text-center text-yellow-600">카테고리명 수정</div>
+                  <input
+                    autoFocus
+                    className="w-full border rounded px-3 py-2 mb-4 text-white bg-black focus:outline-yellow-500"
+                    placeholder="카테고리명"
+                    value={catInput}
+                    onChange={e => setCatInput(e.target.value)}
+                    disabled={false}
+                    readOnly={false}
+                    style={{ pointerEvents: 'auto' }}
+                  />
+                  <div className="flex gap-4">
+                    <button onClick={handleEditCategory} className="px-4 py-2 bg-yellow-600 text-white rounded">저장</button>
+                    <button onClick={() => setCatModal(null)} className="px-4 py-2 bg-gray-400 text-white rounded">취소</button>
+                  </div>
+                </>
+              )}
+              {catModal.type === 'delete' && (
+                <>
+                  <div className="text-lg font-bold mb-4 text-center text-red-600">정말 삭제하시겠습니까?</div>
+                  <div className="mb-6 text-center text-gray-800 dark:text-gray-200 text-sm">이 작업은 되돌릴 수 없습니다.</div>
+                  <div className="flex gap-4">
+                    <button onClick={handleDeleteCategory} className="px-4 py-2 bg-red-600 text-white rounded">삭제</button>
+                    <button onClick={() => setCatModal(null)} className="px-4 py-2 bg-gray-400 text-white rounded">취소</button>
+                  </div>
+                </>
+              )}
+              {catModal.type === 'clear' && (
+                <>
+                  <div className="text-lg font-bold mb-4 text-center text-red-600">정말 모든 카테고리를 초기화하시겠습니까?</div>
+                  <div className="mb-6 text-center text-gray-800 dark:text-gray-200 text-sm">이 작업은 되돌릴 수 없습니다.</div>
+                  <div className="flex gap-4">
+                    <button onClick={handleClearCategories} className="px-4 py-2 bg-red-600 text-white rounded">초기화</button>
+                    <button onClick={() => setCatModal(null)} className="px-4 py-2 bg-gray-400 text-white rounded">취소</button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}

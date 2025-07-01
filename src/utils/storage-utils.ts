@@ -8,7 +8,7 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUz
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
 const DB_NAME = 'bibleHybridDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const MATERIALS_STORE = 'materials';
 const SYNC_QUEUE_STORE = 'sync_queue';
 const APP_METADATA_STORE = 'app_metadata';
@@ -20,6 +20,7 @@ export class HybridStorageService {
       const req = indexedDB.open(DB_NAME, DB_VERSION);
       req.onupgradeneeded = () => {
         const db = req.result;
+        // materials
         if (!db.objectStoreNames.contains(MATERIALS_STORE)) {
           const store = db.createObjectStore(MATERIALS_STORE, { keyPath: 'local_id' });
           store.createIndex('by-category', 'category_type');
@@ -27,14 +28,23 @@ export class HybridStorageService {
           store.createIndex('by-sync-status', 'sync_status');
           store.createIndex('by-updated-at', 'updated_at');
         }
+        // sync_queue
         if (!db.objectStoreNames.contains(SYNC_QUEUE_STORE)) {
           const store = db.createObjectStore(SYNC_QUEUE_STORE, { keyPath: 'id' });
           store.createIndex('by-status', 'status');
           store.createIndex('by-retry-count', 'retry_count');
           store.createIndex('by-created-at', 'created_at');
         }
+        // app_metadata
         if (!db.objectStoreNames.contains(APP_METADATA_STORE)) {
           db.createObjectStore(APP_METADATA_STORE, { keyPath: 'key' });
+        }
+        // category (카테고리 오브젝트스토어 및 인덱스 추가)
+        if (!db.objectStoreNames.contains('category')) {
+          const store = db.createObjectStore('category', { keyPath: 'id' });
+          store.createIndex('by-type', 'type');
+          store.createIndex('by-parent', 'parentId');
+          store.createIndex('by-order', 'order');
         }
       };
       req.onsuccess = () => resolve(req.result);
