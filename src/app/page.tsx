@@ -2,7 +2,7 @@
 import { useEffect } from "react";
 import { startSyncPolling, stopSyncPolling } from "../utils/sync-engine";
 import ServiceCards from '../components/servicecards';
-import { supabase } from '../utils/storage-utils';
+import { supabase } from '../utils/supabaseClient';
 import React from 'react';
 
 export default function HomePage() {

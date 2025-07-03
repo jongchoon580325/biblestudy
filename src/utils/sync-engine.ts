@@ -1,6 +1,7 @@
 // 동기화 엔진: 네트워크 상태 감지 + 큐 polling + Supabase push
 // (c) 2024 bible hybrid project
-import { HybridStorageService, supabase } from './storage-utils';
+import { HybridStorageService } from './storage-utils';
+import { supabase } from './supabaseClient';
 
 let syncInterval: NodeJS.Timeout | null = null;
 const SYNC_INTERVAL_MS = 10 * 1000; // 10초마다 polling

@@ -1,6 +1,7 @@
 // Bible Category 관리 서비스 (IndexedDB 기반)
 import { Category } from '../types/category.types';
-import { supabase, HybridStorageService } from './storage-utils';
+import { HybridStorageService } from './storage-utils';
+import { supabase } from './supabaseClient';
 
 const CATEGORY_STORE = 'category';
 

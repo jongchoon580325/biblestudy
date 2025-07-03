@@ -59,7 +59,11 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground min-h-screen`}>
         <div className="min-h-screen flex flex-col items-center overflow-x-hidden">
           <Header />
-          <main className="flex-1 flex flex-col w-full max-w-[1024px] md:w-[1024px] mx-auto overflow-x-hidden">{children}</main>
+          <main className="flex-1 flex flex-col w-full max-w-[1024px] md:w-[1024px] mx-auto overflow-x-hidden">
+            <div className="w-full max-w-[1000px] mx-auto">
+              {children}
+            </div>
+          </main>
           <Footer />
         </div>
       </body>

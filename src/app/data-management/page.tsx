@@ -9,11 +9,13 @@ import {
   Grid3X3, 
   AlertTriangle 
 } from 'lucide-react';
-import { HybridStorageService, supabase } from '@/utils/storage-utils';
+import { HybridStorageService } from '@/utils/storage-utils';
+import { supabase } from '@/utils/supabaseClient';
 import JSZip from 'jszip';
 import { syncPendingMaterials } from '@/utils/sync-engine';
 import { Category, CategoryType } from '@/types/category.types';
 import { CategoryService } from '@/utils/category-service';
+import type { AdminRecord } from '@/types/storage.types';
 
 // 데이터관리 페이지 본문 UI
 export default function DataManagement() {
@@ -32,6 +34,54 @@ export default function DataManagement() {
   const [catInput, setCatInput] = useState('');
   const [catType, setCatType] = useState<CategoryType>('group');
   const [expanded, setExpanded] = useState<string[]>([]); // 펼침 그룹 id 목록
+  // --- 관리자 계정 관리 상태 ---
+  const DEFAULT_ADMIN: AdminRecord = { email: 'najongchoon@gmail.com', name: '나종춘', role: 'super', password: '1111' };
+  const [admins, setAdmins] = useState([DEFAULT_ADMIN]);
+  const [addAdminModal, setAddAdminModal] = useState(false);
+  const [adminInput, setAdminInput] = useState<AdminRecord>({ email: '', name: '', role: 'super', password: '' });
+  const [editAdminModal, setEditAdminModal] = useState<{ open: boolean, idx: number | null }>({ open: false, idx: null });
+  const [deleteAdminModal, setDeleteAdminModal] = useState<{ open: boolean, idx: number | null }>({ open: false, idx: null });
+  const [editInput, setEditInput] = useState<AdminRecord>({ email: '', name: '', role: 'super', password: '' });
+
+  // 관리자 목록 불러오기 (최초 1회, 새로고침 시)
+  React.useEffect(() => {
+    (async () => {
+      let all = await HybridStorageService.getAllAdmins();
+      // 기본 최고관리자 없으면 IndexedDB에 추가
+      if (!all.find(a => a.email === DEFAULT_ADMIN.email)) {
+        await HybridStorageService.addAdmin(DEFAULT_ADMIN);
+        all = await HybridStorageService.getAllAdmins();
+      }
+      // supabase에도 기본 최고관리자 존재 보장
+      const { data: supaAdmins } = await supabase.from('admins').select('email').eq('email', DEFAULT_ADMIN.email);
+      if (!supaAdmins || supaAdmins.length === 0) {
+        await supabase.from('admins').upsert([DEFAULT_ADMIN], { onConflict: 'email' });
+      }
+      setAdmins([DEFAULT_ADMIN, ...all.filter(a => a.email !== DEFAULT_ADMIN.email)]);
+    })();
+  }, []);
+
+  // 관리자 동기화 트리거
+  React.useEffect(() => {
+    const syncAdmins = async () => {
+      const all = await HybridStorageService.getAllAdmins();
+      const pendings = all.filter(a => a.sync_status === 'pending');
+      if (pendings.length === 0) return;
+      for (const admin of pendings) {
+        if (admin.to_delete) {
+          await supabase.from('admins').delete().eq('email', admin.email);
+          await HybridStorageService.deleteAdmin(admin.email);
+        } else {
+          await supabase.from('admins').upsert([{ ...admin, sync_status: undefined }], { onConflict: 'email' });
+          await HybridStorageService.updateAdmin(admin.email, { sync_status: 'synced' });
+        }
+      }
+      const updated = await HybridStorageService.getAllAdmins();
+      setAdmins([DEFAULT_ADMIN, ...updated.filter(a => a.email !== DEFAULT_ADMIN.email)]);
+    };
+    const interval = setInterval(syncAdmins, 2000);
+    return () => clearInterval(interval);
+  }, []);
 
   // 데이터 초기화 실행
   async function handleReset() {
@@ -209,6 +259,39 @@ export default function DataManagement() {
     setExpanded(expanded => expanded.includes(id) ? expanded.filter(e => e !== id) : [...expanded, id]);
   }
 
+  // 관리자 추가 핸들러
+  async function handleAddAdmin() {
+    if (!adminInput.email.trim() || !adminInput.name.trim() || !adminInput.password.trim()) return;
+    if (admins.some(a => a.email === adminInput.email)) return;
+    await HybridStorageService.addAdmin({ ...adminInput, sync_status: 'pending' });
+    const all = await HybridStorageService.getAllAdmins();
+    setAdmins([DEFAULT_ADMIN, ...all.filter(a => a.email !== DEFAULT_ADMIN.email)]);
+    setAddAdminModal(false);
+    setAdminInput({ email: '', name: '', role: 'super', password: '' });
+  }
+
+  // 관리자 수정 핸들러
+  async function handleEditAdmin() {
+    if (editAdminModal.idx == null) return;
+    if (!editInput.email.trim() || !editInput.name.trim() || !editInput.password.trim()) return;
+    await HybridStorageService.updateAdmin(editInput.email, { ...editInput, sync_status: 'pending' });
+    const all = await HybridStorageService.getAllAdmins();
+    setAdmins([DEFAULT_ADMIN, ...all.filter(a => a.email !== DEFAULT_ADMIN.email)]);
+    setEditAdminModal({ open: false, idx: null });
+  }
+
+  // 삭제 핸들러
+  async function handleDeleteAdmin() {
+    if (deleteAdminModal.idx == null) return;
+    const target = admins[deleteAdminModal.idx];
+    if (!target || target.email === DEFAULT_ADMIN.email) return;
+    // 삭제 플래그만 지정 (실제 삭제는 동기화 후)
+    await HybridStorageService.updateAdmin(target.email, { ...target, sync_status: 'pending', to_delete: true });
+    const all = await HybridStorageService.getAllAdmins();
+    setAdmins([DEFAULT_ADMIN, ...all.filter(a => a.email !== DEFAULT_ADMIN.email)]);
+    setDeleteAdminModal({ open: false, idx: null });
+  }
+
   return (
     <div className="min-h-screen bg-black text-white">
       <div className="max-w-4xl mx-auto px-4 py-8 md:px-8">
@@ -220,7 +303,7 @@ export default function DataManagement() {
           <div className="h-px bg-gradient-to-r from-transparent via-blue-400 to-transparent mb-8 w-full" />
         </div>
 
-        {/* 메인 콘텐츠 영역 */}
+        {/* 데이터 관리/카테고리 관리 그리드 */}
         <div className="grid grid-cols-1 lg:grid-cols-10 gap-8">
           {/* 좌측 영역 (4 columns) - 카테고리 관리 */}
           <div className="lg:col-span-4">
@@ -274,8 +357,9 @@ export default function DataManagement() {
             </div>
           </div>
 
-          {/* 우측 영역 (6 columns) - 데이터 관리 */}
-          <div className="lg:col-span-6">
+          {/* 우측 영역 (6 columns) - 데이터 관리 + 관리자 계정 관리 */}
+          <div className="lg:col-span-6 flex flex-col gap-8">
+            {/* 데이터 관리 (1단) */}
             <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
               <div className="flex items-center mb-6">
                 <Database className="w-6 h-6 mr-3 text-green-400" />
@@ -424,6 +508,108 @@ export default function DataManagement() {
                   </div>
                 </div>
               </div>
+            </div>
+            {/* 관리자 계정 관리 (2단) */}
+            <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
+              <div className="flex items-center mb-6">
+                <span className="text-2xl mr-3">👤</span>
+                <h2 className="text-xl font-semibold">관리자 계정 관리</h2>
+              </div>
+              {/* 관리자 계정 테이블 */}
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-xs text-left text-gray-400">
+                  <thead className="bg-gray-800 text-gray-300">
+                    <tr>
+                      <th className="px-3 py-2">이메일</th>
+                      <th className="px-3 py-2">이름</th>
+                      <th className="px-3 py-2">권한</th>
+                      <th className="px-3 py-2">비고</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {/* 기본 최고관리자 계정 */}
+                    <tr className="bg-gray-700">
+                      <td className="px-3 py-2 font-mono">najongchoon@gmail.com</td>
+                      <td className="px-3 py-2">나종춘</td>
+                      <td className="px-3 py-2 text-amber-400 font-bold">최고관리자</td>
+                      <td className="px-3 py-2 text-xs text-gray-400">(기본)</td>
+                    </tr>
+                    {/* 추가된 관리자 계정 렌더링 */}
+                    {admins.slice(1).map((admin, idx) => (
+                      <tr key={admin.email} className="bg-gray-800">
+                        <td className="px-3 py-2 font-mono">{admin.email}</td>
+                        <td className="px-3 py-2">{admin.name}</td>
+                        <td className="px-3 py-2">{admin.role === 'super' ? '최고관리자' : '일반관리자'}</td>
+                        <td className="px-3 py-2">
+                          <button className="text-xs text-yellow-400 hover:underline mr-2" onClick={() => { setEditInput(admin); setEditAdminModal({ open: true, idx: idx + 1 }); }}>수정</button>
+                          <button className="text-xs text-red-400 hover:underline" onClick={() => setDeleteAdminModal({ open: true, idx: idx + 1 })}>삭제</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {/* 관리자 추가 버튼 및 모달 */}
+              <div className="mt-4 flex justify-end">
+                <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-xs" onClick={() => setAddAdminModal(true)}>
+                  + 관리자 추가
+                </button>
+              </div>
+              {/* 관리자 추가 모달 */}
+              {addAdminModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                  <div className="bg-white dark:bg-gray-900 rounded-[20px] shadow-lg p-6 min-w-[320px] max-w-md w-full flex flex-col items-center border border-white" style={{ border: '1px solid #fff', borderRadius: 20 }}>
+                    <div className="text-lg font-bold mb-4 text-center text-blue-600">관리자 추가</div>
+                    <form className="w-full flex flex-col gap-3" onSubmit={e => { e.preventDefault(); handleAddAdmin(); }}>
+                      <input className="border rounded px-3 py-2 text-black dark:text-white bg-white dark:bg-black" placeholder="이메일" type="email" value={adminInput.email} onChange={e => setAdminInput({ ...adminInput, email: e.target.value })} required />
+                      <input className="border rounded px-3 py-2 text-black dark:text-white bg-white dark:bg-black" placeholder="이름" value={adminInput.name} onChange={e => setAdminInput({ ...adminInput, name: e.target.value })} required />
+                      <select className="border rounded px-3 py-2 text-black dark:text-white bg-white dark:bg-black" value={adminInput.role} onChange={e => setAdminInput({ ...adminInput, role: e.target.value as 'super' | 'normal' })}>
+                        <option value="super">최고관리자</option>
+                        <option value="normal">일반관리자</option>
+                      </select>
+                      <input className="border rounded px-3 py-2 text-black dark:text-white bg-white dark:bg-black" placeholder="비밀번호" type="password" value={adminInput.password} onChange={e => setAdminInput({ ...adminInput, password: e.target.value })} required />
+                      <div className="flex gap-4 mt-2 justify-end">
+                        <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">추가</button>
+                        <button type="button" onClick={() => setAddAdminModal(false)} className="px-4 py-2 bg-gray-400 text-white rounded">취소</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+              {/* 관리자 수정 모달 */}
+              {editAdminModal.open && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                  <div className="bg-white dark:bg-gray-900 rounded-[20px] shadow-lg p-6 min-w-[320px] max-w-md w-full flex flex-col items-center border border-white" style={{ border: '1px solid #fff', borderRadius: 20 }}>
+                    <div className="text-lg font-bold mb-4 text-center text-yellow-600">관리자 정보 수정</div>
+                    <form className="w-full flex flex-col gap-3" onSubmit={e => { e.preventDefault(); handleEditAdmin(); }}>
+                      <input className="border rounded px-3 py-2 text-black dark:text-white bg-white dark:bg-black" placeholder="이메일" type="email" value={editInput.email} onChange={e => setEditInput({ ...editInput, email: e.target.value })} required />
+                      <input className="border rounded px-3 py-2 text-black dark:text-white bg-white dark:bg-black" placeholder="이름" value={editInput.name} onChange={e => setEditInput({ ...editInput, name: e.target.value })} required />
+                      <select className="border rounded px-3 py-2 text-black dark:text-white bg-white dark:bg-black" value={editInput.role} onChange={e => setEditInput({ ...editInput, role: e.target.value as 'super' | 'normal' })}>
+                        <option value="super">최고관리자</option>
+                        <option value="normal">일반관리자</option>
+                      </select>
+                      <input className="border rounded px-3 py-2 text-black dark:text-white bg-white dark:bg-black" placeholder="비밀번호" type="password" value={editInput.password} onChange={e => setEditInput({ ...editInput, password: e.target.value })} required />
+                      <div className="flex gap-4 mt-2 justify-end">
+                        <button type="submit" className="px-4 py-2 bg-yellow-600 text-white rounded">저장</button>
+                        <button type="button" onClick={() => setEditAdminModal({ open: false, idx: null })} className="px-4 py-2 bg-gray-400 text-white rounded">취소</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+              {/* 관리자 삭제 확인 모달 */}
+              {deleteAdminModal.open && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                  <div className="bg-white dark:bg-gray-900 rounded-[20px] shadow-lg p-6 min-w-[320px] max-w-md w-full flex flex-col items-center border border-white" style={{ border: '1px solid #fff', borderRadius: 20 }}>
+                    <div className="text-lg font-bold mb-4 text-center text-red-600">정말 삭제하시겠습니까?</div>
+                    <div className="mb-6 text-center text-gray-800 dark:text-gray-200 text-sm">이 작업은 되돌릴 수 없습니다.</div>
+                    <div className="flex gap-4 mt-2 justify-end">
+                      <button onClick={handleDeleteAdmin} className="px-4 py-2 bg-red-600 text-white rounded">삭제</button>
+                      <button onClick={() => setDeleteAdminModal({ open: false, idx: null })} className="px-4 py-2 bg-gray-400 text-white rounded">취소</button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

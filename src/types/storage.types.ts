@@ -59,4 +59,15 @@ export interface SyncLog {
   status: string;
   message?: string | null;
   created_at: string;
+}
+
+export interface AdminRecord {
+  email: string;
+  name: string;
+  role: 'super' | 'normal';
+  password: string;
+  created_at?: string;
+  updated_at?: string;
+  sync_status?: string;
+  to_delete?: boolean;
 } 

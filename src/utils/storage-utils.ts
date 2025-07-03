@@ -1,17 +1,16 @@
 // IndexedDB/LocalStorage 유틸리티 (하이브리드 저장소)
 import { MaterialRecord, SyncQueueRecord } from '../types/storage.types';
+import type { AdminRecord } from '../types/storage.types';
 
-// Supabase 클라이언트 인스턴스 (환경변수 또는 직접 할당)
-import { createClient } from '@supabase/supabase-js';
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://gqfryirmszmxpgczhgcp.supabase.co";
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxZnJ5aXJtc3pteHBnY3poZ2NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEwNjQzNjksImV4cCI6MjA2NjY0MDM2OX0.lIgXaxc7dKyKoMlEzQkFbttpNUb2rDaUfcF1H21dxlE";
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// Supabase 클라이언트 인스턴스 import (싱글턴)
+import { supabase } from './supabaseClient';
 
 const DB_NAME = 'bibleHybridDB';
 const DB_VERSION = 2;
 const MATERIALS_STORE = 'materials';
 const SYNC_QUEUE_STORE = 'sync_queue';
 const APP_METADATA_STORE = 'app_metadata';
+const ADMIN_STORE = 'admin';
 
 export class HybridStorageService {
   // IndexedDB 오픈 및 스키마 생성
@@ -45,6 +44,10 @@ export class HybridStorageService {
           store.createIndex('by-type', 'type');
           store.createIndex('by-parent', 'parentId');
           store.createIndex('by-order', 'order');
+        }
+        // admin (관리자 계정 오브젝트스토어)
+        if (!db.objectStoreNames.contains(ADMIN_STORE)) {
+          db.createObjectStore(ADMIN_STORE, { keyPath: 'email' });
         }
       };
       req.onsuccess = () => resolve(req.result);
@@ -147,6 +150,69 @@ export class HybridStorageService {
     return new Promise((resolve, reject) => {
       const tx = db.transaction(APP_METADATA_STORE, 'readwrite');
       tx.objectStore(APP_METADATA_STORE).clear();
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  // 관리자 추가
+  static async addAdmin(admin: AdminRecord): Promise<void> {
+    const db = await this.openDB();
+    return new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(ADMIN_STORE, 'readwrite');
+      tx.objectStore(ADMIN_STORE).put(admin);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  // 관리자 전체 조회
+  static async getAllAdmins(): Promise<AdminRecord[]> {
+    const db = await this.openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(ADMIN_STORE, 'readonly');
+      const req = tx.objectStore(ADMIN_STORE).getAll();
+      req.onsuccess = () => resolve(req.result as AdminRecord[]);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  // 관리자 수정
+  static async updateAdmin(email: string, updates: Partial<AdminRecord>): Promise<void> {
+    const db = await this.openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(ADMIN_STORE, 'readwrite');
+      const store = tx.objectStore(ADMIN_STORE);
+      const getReq = store.get(email);
+      getReq.onsuccess = () => {
+        const old = getReq.result;
+        if (!old) return resolve();
+        const updated = { ...old, ...updates };
+        store.put(updated);
+      };
+      getReq.onerror = () => reject(getReq.error);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  // 관리자 삭제
+  static async deleteAdmin(email: string): Promise<void> {
+    const db = await this.openDB();
+    return new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(ADMIN_STORE, 'readwrite');
+      tx.objectStore(ADMIN_STORE).delete(email);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  // 전체 관리자 삭제
+  static async clearAllAdmins(): Promise<void> {
+    const db = await this.openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(ADMIN_STORE, 'readwrite');
+      tx.objectStore(ADMIN_STORE).clear();
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
     });
