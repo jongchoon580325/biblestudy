@@ -7,13 +7,13 @@
 ## 2. 로컬 프로젝트 최초 원격 연결 및 푸시
 ```bash
 # 원격 저장소 등록
-$ git remote add origin https://github.com/jongchoon580325/biblestudy.git
-
-# 최초 커밋 및 푸시
-$ git add .
-$ git commit -m "feat: 프로젝트 초기 커밋 (Initial commit)"
-$ git branch -M main
-$ git push -u origin main
+echo "# biblestudy" >> README.md
+git init
+git add README.md
+git commit -m "first commit"
+git branch -M main
+git remote add origin https://github.com/jongchoon580325/biblestudy.git
+git push -u origin main
 ```
 
 ## 3. 브랜치 전략
